@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+
+# Some taken from https://github.com/mathiasbynens/dotfiles/blob/main/.aliases
+
+# Easier navigation: .., ..., ...., ....., ~ and -
+alias ..="cd .."
+alias ...="cd ../.."
+alias ....="cd ../../.."
+alias .....="cd ../../../.."
+alias ~="cd ~" # `cd` is probably faster to type though
+alias -- -="cd -"
+
+# Shortcuts
+alias d="cd ~/Documents/Dropbox"
+alias dl="cd ~/Downloads"
+alias dt="cd ~/Desktop"
+alias p="cd ~/projects"
+alias g="git"
+
+# Lists - make sure to have https://github.com/eza-community/eza in your path
+alias ls="eza"
+alias ll="eza -alFH --no-git"
+
+# Always enable colored `grep` output
+alias grep='grep --color=auto'
+alias fgrep='fgrep --color=auto'
+alias egrep='egrep --color=auto'
+
+# Reload shell
+alias reload="source ~/.bashrc"
+
+# Print each PATH entry on a separate line
+alias path='echo -e ${PATH//:/\\n}'
+
+# Requires httpie - pip install httpie
+for method in GET HEAD POST PUT DELETE TRACE OPTIONS; do
+	alias "${method}"="http '${method}'"
+done
