@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 # Some taken from https://github.com/mathiasbynens/dotfiles/blob/main/.aliases
 
@@ -11,7 +11,6 @@ alias ~="cd ~" # `cd` is probably faster to type though
 alias -- -="cd -"
 
 # Shortcuts
-alias d="cd ~/Documents/Dropbox"
 alias dl="cd ~/Downloads"
 alias dt="cd ~/Desktop"
 alias p="cd ~/projects"
@@ -19,7 +18,7 @@ alias g="git"
 
 # Lists - make sure to have https://github.com/eza-community/eza in your path
 alias ls="eza"
-alias ll="eza -alFH --no-git"
+alias ll="eza -alFHh --no-git"
 
 # Always enable colored `grep` output
 alias grep='grep --color=auto'
