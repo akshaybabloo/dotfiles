@@ -4,6 +4,7 @@ current_dir=$(pwd)
 
 # Source all files
 for file in "$current_dir"/.{aliases,functions}; do
+    echo "Sourcing $file..."
     if [ -r "$file" ] && [ -f "$file" ]; then
         source "$file"
     fi

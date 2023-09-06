@@ -1,5 +1,8 @@
 #!/bin/bash
 
+declare python_dependencies=("httpie" "eza" "tree")
+declare binary_dependencies=("git", "conda")
+
 commands_to_install=()
 
 # Check if python is installed

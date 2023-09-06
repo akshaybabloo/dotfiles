@@ -90,3 +90,8 @@ function o() {
 function tre() {
 	tree -aC -I '.git|node_modules|bower_components' --dirsfirst "$@" | less -FRNX;
 }
+
+# `ginit` initailises a git repository and makes an initial commit
+function ginit() {
+	git init && git add . && git commit -m "Initial commit"
+}
