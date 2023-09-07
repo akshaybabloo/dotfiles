@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # Create a new directory and enter it
+# Usage: mkd <dirname>
 function mkd() {
 	mkdir -p "$@" && cd "$_";
 }
@@ -75,6 +76,7 @@ fi
 
 # `o` with no arguments opens the current directory, otherwise opens the given
 # location
+# Usage: `o`, `o .`, `o ~/`, `o ./myproject`, etc.
 function o() {
 	if [ $# -eq 0 ]; then
 		open .;
@@ -92,6 +94,12 @@ function tre() {
 }
 
 # `ginit` initailises a git repository and makes an initial commit
+# Usage: `ginit` or `ginit "Initial commit"`
 function ginit() {
-	git init && git add . && git commit -m "Initial commit"
+    local commit_message="${1:-Initial commit}"
+    git init && git add . && git commit -m "$commit_message"
 }
+
+# `echoerr` echoes the first argument to stderr. Useful for printing errors.
+# Usage: echoerr "Error: Something went wrong."
+echoerr() { printf "%s\n" "$*" >&2; }
