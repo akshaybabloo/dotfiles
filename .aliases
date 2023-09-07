@@ -17,7 +17,7 @@ alias p="cd ~/projects"
 alias g="git"
 
 # Lists - make sure to have https://github.com/eza-community/eza in your path
-alias ls="eza"
+alias ls="eza -F"
 alias ll="eza -alFHh --no-git"
 
 # Always enable colored `grep` output
