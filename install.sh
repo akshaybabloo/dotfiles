@@ -1,43 +1,55 @@
 #!/bin/bash
 
-declare python_dependencies=("httpie" "eza" "tree")
-declare binary_dependencies=("git", "conda")
+declare -a python_dependencies=("httpie")
+declare -a binary_dependencies=("git" "conda" "eza" "tree")
 
-commands_to_install=()
+python_commands_to_install=()
+binary_commands_to_install=()
 
 # Check if python is installed
 if ! command -v python3 &> /dev/null; then
-    commands_to_install+=("python3")
+    binary_commands_to_install+=("python3")
 fi
 
 # Check if pip is installed
 if ! command -v pip3 &> /dev/null; then
-    commands_to_install+=("python3-pip")
+    binary_commands_to_install+=("python3-pip")
 fi
 
-# Check if git is installed
-if ! command -v git &> /dev/null; then
-    commands_to_install+=("git")
-fi
+# Check for binary dependencies
+for cmd in "${binary_dependencies[@]}"; do
+    if ! command -v $cmd &> /dev/null; then
+        binary_commands_to_install+=($cmd)
+    fi
+done
 
-# Check if httpie is installed
-if ! command -v http &> /dev/null; then
-    commands_to_install+=("httpie")
-fi
+# Check for python dependencies
+for cmd in "${python_dependencies[@]}"; do
+    if ! pip3 show $cmd &> /dev/null; then
+        python_commands_to_install+=($cmd)
+    fi
+done
 
-# Check if eza is installed
-if ! command -v eza &> /dev/null; then
-    commands_to_install+=("eza")
-fi
+# If there are commands to install, print them at the end
+if [ ${#binary_commands_to_install[@]} -gt 0 ] || [ ${#python_commands_to_install[@]} -gt 0 ]; then
+    echo "Missing dependencies:"
+    
+    if [ ${#binary_commands_to_install[@]} -gt 0 ]; then
+        echo "Binary dependencies:"
+        for dep in "${binary_commands_to_install[@]}"; do
+            echo "     $dep"
+        done
+        # sudo apt-get update
+        # sudo apt-get install ${binary_commands_to_install[@]}
+    fi
 
-# Check if tree is installed
-if ! command -v tree &> /dev/null; then
-    commands_to_install+=("tree")
-fi
-
-# If there are commands to install, install them
-if [ ${#commands_to_install[@]} -gt 0 ]; then
-    echo "Following commands are missing: ${commands_to_install[@]}..."
-    # sudo apt-get update
-    # sudo apt-get install ${commands_to_install[@]}
+    if [ ${#python_commands_to_install[@]} -gt 0 ]; then
+        echo "Python dependencies:"
+        for dep in "${python_commands_to_install[@]}"; do
+            echo "     $dep"
+        done
+        # pip3 install ${python_commands_to_install[@]}
+    fi
+else
+    echo "No missing dependencies found."
 fi
