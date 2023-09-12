@@ -27,6 +27,8 @@ alias dt="cd ~/Desktop"
 alias p="cd ~/code"
 ## Alias for `git`
 alias g="git"
+## Remove a directory and all files
+alias rmd="rm -rf"
 
 # Lists - make sure to have https://github.com/eza-community/eza in your path
 ## List all files colorized using eza
