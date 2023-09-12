@@ -1,7 +1,6 @@
 #!/bin/bash
 
 if [[ $0 == -* ]]; then
-    # The script is being sourced
     if [[ $SHELL == */zsh ]]; then
         script_dir=$(dirname "$ZSH_ARGZERO")
     elif [[ $SHELL == */bash ]]; then
@@ -11,12 +10,11 @@ if [[ $0 == -* ]]; then
         exit 1
     fi
 else
-    # The script is being executed
-    script_dir=$(dirname "$0")
+    script_dir=$(dirname "${BASH_SOURCE[0]}")
 fi
 
 # Source all files
-for file in "$current_dir"/.{aliases,functions}; do
+for file in "$script_dir"/.{aliases,functions}; do
     echo "Sourcing $file..."
     if [ -r "$file" ] && [ -f "$file" ]; then
         source "$file"
