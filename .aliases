@@ -3,21 +3,35 @@
 # Some taken from https://github.com/mathiasbynens/dotfiles/blob/main/.aliases
 
 # Easier navigation: .., ..., ...., ....., ~ and -
+## Go back one directory back
 alias ..="cd .."
+## Go back two directory back
 alias ...="cd ../.."
+## Go back three directory back
 alias ....="cd ../../.."
+## Go back 4 directory back
 alias .....="cd ../../../.."
+## Go to home directory
 alias ~="cd ~" # `cd` is probably faster to type though
+## Toggle between directories
 alias -- -="cd -"
 
 # Shortcuts
+## Clear terminal
+alias c="clear"
+## Change directory to ~/Downloads
 alias dl="cd ~/Downloads"
+## Change directory to ~/Desktop
 alias dt="cd ~/Desktop"
-alias p="cd ~/projects"
+## Change directory to ~/code
+alias p="cd ~/code"
+## Alias for `git`
 alias g="git"
 
 # Lists - make sure to have https://github.com/eza-community/eza in your path
+## List all files colorized using eza
 alias ls="eza -F"
+## List all files colorized in long format using eza
 alias ll="eza -alFHh --no-git"
 
 # Always enable colored `grep` output
@@ -25,13 +39,15 @@ alias grep='grep --color=auto'
 alias fgrep='fgrep --color=auto'
 alias egrep='egrep --color=auto'
 
-# Reload shell
+## Reload the shell (i.e. invoke as a login shell)
 alias reload="source ~/.bashrc"
 
-# Print each PATH entry on a separate line
+## Print each PATH entry on a separate line
 alias path='echo -e ${PATH//:/\\n}'
 
 # Requires httpie - pip install httpie
+## Make httpie output more readable
+## Usage: http GET <url>, http POST <url>, etc.
 for method in GET HEAD POST PUT DELETE TRACE OPTIONS; do
 	alias "${method}"="http '${method}'"
 done
