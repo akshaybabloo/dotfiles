@@ -7,6 +7,7 @@ function mkd() {
 }
 
 # Create a .tar.gz archive, using `zopfli`, `pigz` or `gzip` for compression
+# Usage: targz <filename> <...source>
 function targz() {
 	local tmpFile="${@%/}.tar";
 	tar -cvf "${tmpFile}" --exclude=".DS_Store" "${@}" || return 1;
@@ -41,6 +42,7 @@ function targz() {
 }
 
 # Determine size of a file or total size of a directory
+# Usage: fs <file|directory>
 function fs() {
 	if du -b /dev/null > /dev/null 2>&1; then
 		local arg=-sbh;
@@ -55,6 +57,7 @@ function fs() {
 }
 
 # Start an HTTP server from a directory, optionally specifying the port
+# Usage: server [port] [path]
 function server() {
 	local port="${1:-8000}";
 	sleep 1 && open "http://localhost:${port}/" &
@@ -89,6 +92,7 @@ function o() {
 # the `.git` directory, listing directories first. The output gets piped into
 # `less` with options to preserve color and line numbers, unless the output is
 # small enough for one screen.
+# Usage: tre <directory>
 function tre() {
 	tree -aC -I '.git|node_modules|bower_components' --dirsfirst "$@" | less -FRNX;
 }
