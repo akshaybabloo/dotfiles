@@ -16,11 +16,15 @@ process_file() {
         if [[ $line == \#\#* ]]; then
             # Trim the ## and space
             trimmed_line=$(echo $line | sed 's/^##[[:space:]]*//')
+            # If the trimmed line starts with "Usage:", add a newline before it and make it bold
+            if [[ $trimmed_line == Usage:* ]]; then
+                trimmed_line="\n**$trimmed_line**"
+            fi
             comments+="$trimmed_line\n"
         # If the line starts with function or alias, it's a declaration. Extract the name and add it to the man page content
         elif [[ $line == function* ]] || [[ $line == alias* ]]; then
             name=$(echo $line | awk '{print $2}' | cut -d'=' -f1)
-            man_page_content+="### $name\n\n$comments\n"
+            man_page_content+="### $name\n$comments\n"
             # Reset comments
             comments=""
         fi

@@ -5,7 +5,9 @@ export default defineConfig({
   title: "Dotfiles",
   description: "Helpful Dotfiles",
   themeConfig: {
-    // https://vitepress.dev/reference/default-theme-config
+    search: {
+      provider: 'local'
+    },
     nav: [
       { text: 'Home', link: '/' },
     ],

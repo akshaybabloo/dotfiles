@@ -3,4 +3,6 @@ layout: doc
 title: Dotfiles
 ---
 
-<<< @/help.md
+# Dotfiles
+
+<!--@include: @/help.md-->
