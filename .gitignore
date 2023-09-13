@@ -173,3 +173,5 @@ docs/.vuepress/cache/
 .idea
 
 docs/.vitepress/cache/deps/
+
+docs/help.md
