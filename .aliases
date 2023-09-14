@@ -31,12 +31,12 @@ alias g="git"
 alias rmd="rm -rf"
 
 # Lists - make sure to have https://github.com/eza-community/eza in your path
-## ::: info
+## ::: info Requirements
 ## This alias requires `eza`, see https://github.com/eza-community/eza.
 ## :::
 ## List all files colorized using eza
 alias ls="eza -F"
-## ::: info
+## ::: info Requirements
 ## This alias requires `eza`, see https://github.com/eza-community/eza.
 ## :::
 ## List all files colorized in long format using eza
@@ -53,7 +53,7 @@ alias reload="source ~/.bashrc"
 ## Print each PATH entry on a separate line
 alias path='echo -e ${PATH//:/\\n}'
 
-## ::: info
+## ::: info Requirements
 ## This alias requires `httpie`, see https://httpie.io.
 ## :::
 ## Make httpie output more readable
