@@ -115,11 +115,11 @@ function ginit() {
 
 ## `echoerr` echoes the first argument to stderr. Useful for printing errors.
 ## Usage: `echoerr "Error: Something went wrong."`
-echoerr() { printf "%s\n" "$*" >&2; }
+function echoerr() { printf "%s\n" "$*" >&2; }
 
 ## `dlc` deletes all lines that start with the specified comment symbol
 ## Usage: `dlc "<file>" "<comment_symbol>"`
-dlc() {
+function dlc() {
     local file=$1
     local comment_symbol=$2
     local temp_file="${file}.tmp"
