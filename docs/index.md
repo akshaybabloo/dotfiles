@@ -10,7 +10,7 @@ Some helpful dotfiles for your system.
 ## Installation
 
 ```bash
-git clone github.com/akshaybabloo/dotfiles
+git clone https://github.com/akshaybabloo/dotfiles.git
 cd dotfiles
 ./bootstrap.sh
 ```
