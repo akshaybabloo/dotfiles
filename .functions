@@ -116,3 +116,41 @@ function ginit() {
 ## `echoerr` echoes the first argument to stderr. Useful for printing errors.
 ## Usage: `echoerr "Error: Something went wrong."`
 echoerr() { printf "%s\n" "$*" >&2; }
+
+## `dlc` deletes all lines that start with the specified comment symbol
+## Usage: `dlc "<file>" "<comment_symbol>"`
+dlc() {
+    local file=$1
+    local comment_symbol=$2
+    local temp_file="${file}.tmp"
+
+    # Check if the file exists, if not display an error message and return
+    if [[ ! -f $file ]]; then
+        echo "Error: $file not found."
+        return
+    fi
+
+    # Remove inline comments and full-line comments while preserving necessary newlines
+    awk -v symbol="$comment_symbol" '
+    {
+        line = $0
+        if (line ~ "^[[:space:]]*" symbol ".*$") {
+            if (prev_line !~ "^[[:space:]]*" symbol ".*$") {
+                print ""
+            }
+        } else {
+            sub("[[:space:]]*" symbol ".*", "", line)
+            if (length(line) > 0) {
+                print line
+            } else if (prev_line !~ "^[[:space:]]*" symbol ".*$") {
+                print ""
+            }
+        }
+        prev_line = $0
+    }
+    ' "$file" > "$temp_file"
+
+    # Replace the original file with the temporary file
+    mv "$temp_file" "$file"
+}
+
