@@ -11,6 +11,9 @@ export default defineConfig({
     },
     nav: [
       { text: 'Home', link: '/' },
+      { text: 'Get Started', link: '/get-started' },
+      { text: 'Functions', link: '/functions' },
+      { text: 'Aliases', link: '/aliases' },
     ],
     logo: '/logo.svg',
 

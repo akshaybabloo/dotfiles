@@ -1,14 +1,16 @@
 #!/bin/bash
 
-man_page_content=""
+function_content=""
+alias_content=""
 comments=""
 
 process_file() {
     local file=$1
     local type=$2
+    local -n content_var=$3
 
     # Add a heading to the man page content
-    man_page_content+="## $type\n\n"
+    content_var+="# $type\n\n"
 
     # Read the file line by line
     while IFS= read -r line; do
@@ -24,14 +26,16 @@ process_file() {
         # If the line starts with function or alias, it's a declaration. Extract the name and add it to the man page content
         elif [[ $line == function* ]] || [[ $line == alias* ]]; then
             name=$(echo $line | awk '{print $2}' | cut -d'=' -f1)
-            man_page_content+="### $name\n$comments\n"
+            content_var+="## $name\n\n$comments\n"
             # Reset comments
             comments=""
         fi
     done < "$file"
 }
 
-process_file ".functions" "Functions"
-process_file ".aliases" "Aliases"
+process_file ".functions" "Functions" function_content
+process_file ".aliases" "Aliases" alias_content
 
-echo -e $man_page_content > $(pwd)/docs/help.md
+# Write to separate markdown files
+echo -e $function_content > $(pwd)/docs/functions-auto.md
+echo -e $alias_content > $(pwd)/docs/aliases-auto.md
