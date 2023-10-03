@@ -8,12 +8,22 @@ process_file() {
     local file=$1
     local type=$2
     local -n content_var=$3
+    local lineno=0
+    local baseURL="https://github.com/akshaybabloo/dotfiles/blob/main"
 
     # Add a heading to the man page content
     content_var+="# $type\n\n"
 
+    # Determine the URL segment based on the content type
+    local urlSegment=".functions" # default to functions
+    if [[ $type == "Aliases" ]]; then
+        urlSegment=".aliases"
+    fi
+
     # Read the file line by line
     while IFS= read -r line; do
+        ((lineno++))  # Increment line number for every line
+
         # If the line starts with ##, it's a comment. Add it to the comments variable
         if [[ $line == \#\#* ]]; then
             # Trim the ## and space
@@ -26,12 +36,13 @@ process_file() {
         # If the line starts with function or alias, it's a declaration. Extract the name and add it to the man page content
         elif [[ $line == function* ]] || [[ $line == alias* ]]; then
             name=$(echo $line | awk '{print $2}' | cut -d'=' -f1)
-            content_var+="## $name\n\n$comments\n"
+            content_var+="## $name\n\n[<Badge type=\"tip\" text=\"source\" />]($baseURL/$urlSegment#L$lineno)\n\n$comments\n"
             # Reset comments
             comments=""
         fi
     done < "$file"
 }
+
 
 process_file ".functions" "Functions" function_content
 process_file ".aliases" "Aliases" alias_content
