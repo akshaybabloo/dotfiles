@@ -42,6 +42,12 @@ alias ls="eza -F"
 ## List all files colorized in long format using eza
 alias ll="eza -alFHh --no-git"
 
+## ::: info Requirements
+## This alias requires `cat`, see https://github.com/sharkdp/bat
+## :::
+## Use bat instead of cat to output file contents
+alias cat="bat"
+
 # Always enable colored `grep` output
 alias grep='grep --color=auto'
 alias fgrep='fgrep --color=auto'

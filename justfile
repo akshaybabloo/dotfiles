@@ -7,6 +7,6 @@ current_path := justfile_directory()
 
 # Generates docs for the project
 docs:
-    ./extract_man.sh
+    ./extract_docs.sh
     cd {{current_path}}/docs && bun run docs:build
     
