@@ -48,6 +48,12 @@ alias ll="eza -alFHh --no-git"
 ## Use bat instead of cat to output file contents
 alias cat="bat"
 
+## ::: info Requirements
+## This alias requires `btop++`, see https://github.com/aristocratos/btop
+## :::
+## Use btop instead of top to monitor system resources
+alias top="btop"
+
 # Always enable colored `grep` output
 alias grep='grep --color=auto'
 alias fgrep='fgrep --color=auto'
