@@ -5,6 +5,7 @@ export default defineConfig({
   title: "Dotfiles",
   description: "Helpful Dotfiles",
   base: '/dotfiles/',
+  head: [['link', { rel: 'icon', href: '/dotfiles/favicon.ico' }]],
   themeConfig: {
     search: {
       provider: 'local'
@@ -22,6 +23,10 @@ export default defineConfig({
 
     socialLinks: [
       { icon: 'github', link: 'https://github.com/akshaybabloo/dotfiles' }
-    ]
+    ],
+
+    footer: {
+      message: `Made with ❤️ by <a href='https://gollahalli.com'>Akshay Raj Gollahalli</a>`,
+    }
   }
 })
