@@ -3,57 +3,57 @@
 ## Create a new directory and enter it
 ## Usage: `mkd <dirname>`
 function mkd() {
-	mkdir -p "$@" && cd "$_";
+	mkdir -p "$@" && cd "$_"
 }
 
 ## Create a .tar.gz archive, using `zopfli`, `pigz` or `gzip` for compression
 ## Usage: `targz <filename> <...source>`
 function targz() {
-	local tmpFile="${@%/}.tar";
-	tar -cvf "${tmpFile}" --exclude=".DS_Store" "${@}" || return 1;
+	local tmpFile="${@%/}.tar"
+	tar -cvf "${tmpFile}" --exclude=".DS_Store" "${@}" || return 1
 
 	size=$(
-		stat -f"%z" "${tmpFile}" 2> /dev/null; # macOS `stat`
-		stat -c"%s" "${tmpFile}" 2> /dev/null;  # GNU `stat`
-	);
+		stat -f"%z" "${tmpFile}" 2>/dev/null # macOS `stat`
+		stat -c"%s" "${tmpFile}" 2>/dev/null # GNU `stat`
+	)
 
-	local cmd="";
-	if (( size < 52428800 )) && hash zopfli 2> /dev/null; then
+	local cmd=""
+	if ((size < 52428800)) && hash zopfli 2>/dev/null; then
 		# the .tar file is smaller than 50 MB and Zopfli is available; use it
-		cmd="zopfli";
+		cmd="zopfli"
 	else
-		if hash pigz 2> /dev/null; then
-			cmd="pigz";
+		if hash pigz 2>/dev/null; then
+			cmd="pigz"
 		else
-			cmd="gzip";
-		fi;
-	fi;
+			cmd="gzip"
+		fi
+	fi
 
-	echo "Compressing .tar ($((size / 1000)) kB) using \`${cmd}\`…";
-	"${cmd}" -v "${tmpFile}" || return 1;
-	[ -f "${tmpFile}" ] && rm "${tmpFile}";
+	echo "Compressing .tar ($((size / 1000)) kB) using \`${cmd}\`…"
+	"${cmd}" -v "${tmpFile}" || return 1
+	[ -f "${tmpFile}" ] && rm "${tmpFile}"
 
 	zippedSize=$(
-		stat -f"%z" "${tmpFile}.gz" 2> /dev/null; # macOS `stat`
-		stat -c"%s" "${tmpFile}.gz" 2> /dev/null; # GNU `stat`
-	);
+		stat -f"%z" "${tmpFile}.gz" 2>/dev/null # macOS `stat`
+		stat -c"%s" "${tmpFile}.gz" 2>/dev/null # GNU `stat`
+	)
 
-	echo "${tmpFile}.gz ($((zippedSize / 1000)) kB) created successfully.";
+	echo "${tmpFile}.gz ($((zippedSize / 1000)) kB) created successfully."
 }
 
 ## Determine size of a file or total size of a directory
 ## Usage: `fs <file|directory>`
 function fs() {
-	if du -b /dev/null > /dev/null 2>&1; then
-		local arg=-sbh;
+	if du -b /dev/null >/dev/null 2>&1; then
+		local arg=-sbh
 	else
-		local arg=-sh;
+		local arg=-sh
 	fi
 	if [[ -n "$@" ]]; then
-		du $arg -- "$@";
+		du $arg -- "$@"
 	else
-		du $arg .[^.]* ./*;
-	fi;
+		du $arg .[^.]* ./*
+	fi
 }
 
 ## ::: info Requirements
@@ -62,11 +62,11 @@ function fs() {
 ## Start an HTTP server from a directory, optionally specifying the port
 ## Usage: `server [port] [path]`
 function server() {
-	local port="${1:-8000}";
+	local port="${1:-8000}"
 	sleep 1 && open "http://localhost:${port}/" &
 	# Set the default Content-Type to `text/plain` instead of `application/octet-stream`
 	# And serve everything as UTF-8 (although not technically correct, this doesn’t break anything for binary files)
-	python -c $'import SimpleHTTPServer;\nmap = SimpleHTTPServer.SimpleHTTPRequestHandler.extensions_map;\nmap[""] = "text/plain";\nfor key, value in map.items():\n\tmap[key] = value + ";charset=UTF-8";\nSimpleHTTPServer.test();' "$port";
+	python -c $'import SimpleHTTPServer;\nmap = SimpleHTTPServer.SimpleHTTPRequestHandler.extensions_map;\nmap[""] = "text/plain";\nfor key, value in map.items():\n\tmap[key] = value + ";charset=UTF-8";\nSimpleHTTPServer.test();' "$port"
 }
 
 ## Normalize `open` across Linux, macOS, and Windows.
@@ -74,9 +74,9 @@ function server() {
 if [ ! $(uname -s) = 'Darwin' ]; then
 	if grep -q Microsoft /proc/version; then
 		# Ubuntu on Windows using the Linux subsystem
-		alias open='explorer.exe';
+		alias open='explorer.exe'
 	else
-		alias open='xdg-open';
+		alias open='xdg-open'
 	fi
 fi
 
@@ -85,10 +85,10 @@ fi
 ## Usage: `o`, `o .`, `o ~/`, `o ./myproject`, etc.
 function o() {
 	if [ $# -eq 0 ]; then
-		open .;
+		open .
 	else
-		open "$@";
-	fi;
+		open "$@"
+	fi
 }
 
 ## ::: info Requirements
@@ -100,7 +100,13 @@ function o() {
 ## small enough for one screen.
 ## Usage: `tre <directory>`
 function tre() {
-	tree -aC -I '.git|node_modules|bower_components' --dirsfirst "$@" | less -FRNX;
+	# Check if tree is installed
+	if ! command -v tree &>/dev/null; then
+		echoerr "Error: tree is not installed. Please install it from - sudo apt install tree"
+		return
+	fi
+
+	tree -aC -I '.git|node_modules|bower_components' --dirsfirst "$@" | less -FRNX
 }
 
 ## ::: info Requirements
@@ -109,8 +115,14 @@ function tre() {
 ## `ginit` initailises a git repository and makes an initial commit
 ## Usage: `ginit` or `ginit "Initial commit"`
 function ginit() {
-    local commit_message="${1:-Initial commit}"
-    git init && git add . && git commit -m "$commit_message"
+	# Check if git is installed
+	if ! command -v git &>/dev/null; then
+		echoerr "Error: git not found. Please install git from https://git-scm.com/downloads"
+		return
+	fi
+
+	local commit_message="${1:-Initial commit}"
+	git init && git add . && git commit -m "$commit_message"
 }
 
 ## `echoerr` echoes the first argument to stderr. Useful for printing errors.
@@ -120,18 +132,18 @@ function echoerr() { printf "%s\n" "$*" >&2; }
 ## `dlc` deletes all lines that start with the specified comment symbol
 ## Usage: `dlc "<file>" "<comment_symbol>"`
 function dlc() {
-    local file=$1
-    local comment_symbol=$2
-    local temp_file="${file}.tmp"
+	local file=$1
+	local comment_symbol=$2
+	local temp_file="${file}.tmp"
 
-    # Check if the file exists, if not display an error message and return
-    if [[ ! -f $file ]]; then
-        echo "Error: $file not found."
-        return
-    fi
+	# Check if the file exists, if not display an error message and return
+	if [[ ! -f $file ]]; then
+		echo "Error: $file not found."
+		return
+	fi
 
-    # Remove inline comments and full-line comments while preserving necessary newlines
-    awk -v symbol="$comment_symbol" '
+	# Remove inline comments and full-line comments while preserving necessary newlines
+	awk -v symbol="$comment_symbol" '
     {
         line = $0
         if (line ~ "^[[:space:]]*" symbol ".*$") {
@@ -148,10 +160,10 @@ function dlc() {
         }
         prev_line = $0
     }
-    ' "$file" > "$temp_file"
+    ' "$file" >"$temp_file"
 
-    # Replace the original file with the temporary file
-    mv "$temp_file" "$file"
+	# Replace the original file with the temporary file
+	mv "$temp_file" "$file"
 }
 
 ## ::: info Requirements
