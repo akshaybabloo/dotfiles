@@ -154,3 +154,61 @@ function dlc() {
     mv "$temp_file" "$file"
 }
 
+## ::: info Requirements
+## This function requires `7zzs`, see https://www.7-zip.org/download.html
+## :::
+## `7za` creates a 7Zip archive using the LZMA algorithm
+## Usage: `7za <directory>` or `7za <filename1> <filename2> <...> <filenameN> <archive_name>`
+function 7za() {
+    if ! command -v 7zzs &> /dev/null; then
+        echoerr "Error: 7zzs not found. Please install 7zzs from https://www.7-zip.org/download.html"
+        return
+    fi
+
+    if [[ -z $1 ]]; then    # Check if the first argument is not empty
+
+        echoerr "Error: No arguments provided."
+        return
+    fi
+
+    if [[ -d $1 ]]; then
+        local dir_name=$(basename "$1")
+        7zzs a -t7z -m0=lzma -mx9 -mfb=64 -md=32m -ms=on "${dir_name}".7z "$1"
+        return
+    fi
+
+    # Ensure at least two arguments are provided for files + archive name
+    if [[ $# -lt 2 ]]; then
+        echoerr "Error: Please provide multiple files and an archive name."
+        return
+    fi
+
+    7zzs a -t7z -m0=lzma -mx9 -mfb=64 -md=32m -ms=on "${@: -1}".7z "${@:1:$#-1}"
+}
+
+## ::: info Requirements
+## This function requires `7zzs`, see https://www.7-zip.org/download.html
+## :::
+## `7zx` extracts a 7Zip archive to a directory with the same name as the archive
+## Usage: `7zx <filename>.7z`
+function 7zx() {
+    # Check if 7zzs is installed
+    if ! command -v 7zzs &> /dev/null; then
+        echoerr "Error: 7zzs not found. Please install 7zzs from https://www.7-zip.org/download.html"
+        return
+    fi
+
+    # Check if the first argument is not empty and is a .7z file
+    if [[ -z $1 || "${1##*.}" != "7z" ]]; then
+        echoerr "Error: Please provide a valid .7z file as an argument."
+        return
+    fi
+
+    # Extract the name without the .7z extension
+    local dir_name=$(basename "$1" .7z)
+    
+    mkdir -p "$dir_name"
+    
+    7zzs x "$1" -o"$dir_name"
+}
+
