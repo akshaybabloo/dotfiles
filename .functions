@@ -210,11 +210,11 @@ function 7zx() {
         return
     fi
 
-    # Check if the first argument is not empty and is a .7z file
-    if [[ -z $1 || "${1##*.}" != "7z" ]]; then
-        echoerr "Error: Please provide a valid .7z file as an argument."
-        return
-    fi
+    # # Check if the first argument is not empty and is a .7z file
+    # if [[ -z $1 || "${1##*.}" != "7z" ]]; then
+    #     echoerr "Error: Please provide a valid .7z file as an argument."
+    #     return
+    # fi
 
     # Extract the name without the .7z extension
     local dir_name=$(basename "$1" .7z)
