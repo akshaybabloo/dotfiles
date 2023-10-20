@@ -206,21 +206,42 @@ function 7za() {
 function 7zx() {
     # Check if 7zzs is installed
     if ! command -v 7zzs &> /dev/null; then
-        echoerr "Error: 7zzs not found. Please install 7zzs from https://www.7-zip.org/download.html"
+        echo "Error: 7zzs not found. Please install 7zzs from https://www.7-zip.org/download.html"
         return
     fi
 
-    # # Check if the first argument is not empty and is a .7z file
-    # if [[ -z $1 || "${1##*.}" != "7z" ]]; then
-    #     echoerr "Error: Please provide a valid .7z file as an argument."
-    #     return
-    # fi
+    local file_name="$1"
+    local extension="${file_name##*.}"
+    local dir_name
 
-    # Extract the name without the .7z extension
-    local dir_name=$(basename "$1" .7z)
-    
+    # Determine the directory name based on the file extension
+    case "$extension" in
+        zip)
+            dir_name=$(basename "$file_name" .zip)
+            ;;
+        rar)
+            # Handle multi-part rar, like file.part1.rar
+            if [[ "$file_name" =~ \.part[0-9]+\.rar$ ]]; then
+                dir_name=$(basename "$file_name" .part1.rar)
+            else
+                dir_name=$(basename "$file_name" .rar)
+            fi
+            ;;
+        7z)
+            # Handle multi-part 7z, like file.part1.7z
+            if [[ "$file_name" =~ \.part[0-9]+\.7z$ ]]; then
+                dir_name=$(basename "$file_name" .part1.7z)
+            else
+                dir_name=$(basename "$file_name" .7z)
+            fi
+            ;;
+        *)
+            echo "Unsupported file extension: $extension"
+            return
+            ;;
+    esac
+
     mkdir -p "$dir_name"
-    
-    7zzs x "$1" -o"$dir_name"
+    7zzs x "$file_name" -o"$dir_name"
 }
 
