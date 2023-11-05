@@ -25,6 +25,10 @@ alias dl="cd ~/Downloads"
 alias dt="cd ~/Desktop"
 ## Change directory to ~/code
 alias p="cd ~/code"
+## Change directory to ~/code/personal
+alias pp="cd ~/code/personal"
+## Change directory to ~/code/work
+alias pw="cd ~/code/work"
 ## Alias for `git`
 alias g="git"
 ## Remove a directory and all files
