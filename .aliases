@@ -34,6 +34,12 @@ alias g="git"
 ## Remove a directory and all files
 alias rmd="rm -rf"
 
+## ::: info Requirements
+## This alias requires `eza`, see https://github.com/akshaybabloo/fs_rs.
+## :::
+## Get the size of a file or directory
+alias fs="fs_rs"
+
 # Lists - make sure to have https://github.com/eza-community/eza in your path
 ## ::: info Requirements
 ## This alias requires `eza`, see https://github.com/eza-community/eza.

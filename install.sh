@@ -1,7 +1,7 @@
 #!/bin/bash
 
 declare -a python_dependencies=("httpie")
-declare -a binary_dependencies=("git" "conda" "eza" "tree" "bat" "btop")
+declare -a binary_dependencies=("git" "conda" "eza" "tree" "bat" "btop" "fs_rs)
 
 python_commands_to_install=()
 binary_commands_to_install=()
