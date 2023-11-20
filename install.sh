@@ -1,55 +1,51 @@
 #!/bin/bash
 
-declare -a python_dependencies=("httpie")
-declare -a binary_dependencies=("git" "conda" "eza" "tree" "bat" "btop" "fs_rs)
+# Declare associative arrays
+declare -A python_dependencies
+declare -A binary_dependencies
 
-python_commands_to_install=()
-binary_commands_to_install=()
+# Populate the associative arrays
+python_dependencies[httpie]="pip install httpie"
 
-# Check if python is installed
-if ! command -v python3 &> /dev/null; then
-    binary_commands_to_install+=("python3")
-fi
+binary_dependencies[brew]="curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh | bash"
+binary_dependencies[git]="brew install git"
+binary_dependencies[rustup]="curl https://sh.rustup.rs -sSf | sh"
+binary_dependencies[conda]="brew install miniconda"
+binary_dependencies[eza]="cargo install eza"
+binary_dependencies[tree]="brew install tree"
+binary_dependencies[bat]="brew install bat"
+binary_dependencies[btop]="brew install btop"
+binary_dependencies[fs_rs]="cargo install fs_rs"
 
-# Check if pip is installed
-if ! command -v pip3 &> /dev/null; then
-    binary_commands_to_install+=("python3-pip")
-fi
+# Flag to track if any dependency is missing
+any_missing=false
 
-# Check for binary dependencies
-for cmd in "${binary_dependencies[@]}"; do
-    if ! command -v $cmd &> /dev/null; then
-        binary_commands_to_install+=($cmd)
-    fi
-done
+# Function to check and print missing dependencies
+check_dependencies() {
+    local -n array=$1
+    local has_missing=false
 
-# Check for python dependencies
-for cmd in "${python_dependencies[@]}"; do
-    if ! pip3 show $cmd &> /dev/null; then
-        python_commands_to_install+=($cmd)
-    fi
-done
+    for key in "${!array[@]}"; do
+        if ! command -v "$key" &> /dev/null; then
+            if [ "$has_missing" = false ]; then
+                if [ "$any_missing" = false ]; then
+                    echo "Here are some missing dependencies"
+                    echo "----------------------------------"
+                    any_missing=true
+                fi
+                echo -e "\n$2:"
+                has_missing=true
+            fi
+            echo "    $key - ${array[$key]}"
+        fi
+    done
+}
 
-# If there are commands to install, print them at the end
-if [ ${#binary_commands_to_install[@]} -gt 0 ] || [ ${#python_commands_to_install[@]} -gt 0 ]; then
-    echo "Missing dependencies:"
-    
-    if [ ${#binary_commands_to_install[@]} -gt 0 ]; then
-        echo "Binary dependencies:"
-        for dep in "${binary_commands_to_install[@]}"; do
-            echo "     $dep"
-        done
-        # sudo apt-get update
-        # sudo apt-get install ${binary_commands_to_install[@]}
-    fi
+# Check and print missing dependencies
+check_dependencies python_dependencies "Python Dependencies"
+check_dependencies binary_dependencies "Binary Dependencies"
 
-    if [ ${#python_commands_to_install[@]} -gt 0 ]; then
-        echo "Python dependencies:"
-        for dep in "${python_commands_to_install[@]}"; do
-            echo "     $dep"
-        done
-        # pip3 install ${python_commands_to_install[@]}
-    fi
-else
-    echo "No missing dependencies found."
+# Final message if no dependencies are missing
+if [ "$any_missing" = false ]; then
+    echo -e "All dependencies are installed \U1F389"
 fi
