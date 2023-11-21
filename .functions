@@ -1,5 +1,45 @@
 #!/bin/bash
 
+function _whereami() {
+    if [[ $0 == -* ]]; then
+        if [[ $SHELL == */zsh ]]; then
+            script_dir=$(dirname "$ZSH_ARGZERO")
+        elif [[ $SHELL == */bash ]]; then
+            script_dir=$(dirname "${BASH_SOURCE[0]}")
+        else
+            echo "Unsupported shell: $SHELL"
+            exit 1
+        fi
+    else
+        script_dir=$(dirname "${BASH_SOURCE[0]}")
+    fi
+
+    echo $script_dir
+}
+
+function _loading() {
+    local pid=$1
+    local message=$2
+
+    if [[ $1 == "--done" ]]; then
+        echo -e "\n$2"
+        return
+    fi
+
+    # Start the Spinner:
+    i=1
+    sp="/-\|"
+    echo -n "$message "
+    while [ -d /proc/"$pid" ]; do
+        printf "\b${sp:i++%${#sp}:1}"
+        sleep .1
+    done
+
+    # Clean up the output:
+    echo -e "\b\b Done!"
+}
+
+
 ## Create a new directory and enter it
 ## Usage: `mkd <dirname>`
 function mkd() {
@@ -229,5 +269,52 @@ function 7zx() {
 
     mkdir -p "$dir_name"
     7zzs x "$file_name" -o"$dir_name"
+}
+
+## `dotc` checks if all the requirments are met for the dotfiles to work
+## Usage: `dotc`
+function dotc() {
+    if [[ $0 == -* ]]; then
+        if [[ $SHELL == */zsh ]]; then
+            script_dir=$(dirname "$ZSH_ARGZERO")
+        elif [[ $SHELL == */bash ]]; then
+            script_dir=$(dirname "${BASH_SOURCE[0]}")
+        else
+            echo "Unsupported shell: $SHELL"
+            exit 1
+        fi
+    else
+        script_dir=$(dirname "${BASH_SOURCE[0]}")
+    fi
+
+    source $script_dir/install.sh
+}
+
+## `udot` updates the dotfiles to the latest main branch
+## Usage: `udot`
+function udot() {
+    cd $(_whereami)
+
+    git fetch -q origin main &
+    fetch_pid=$!
+    _loading $fetch_pid "Checking for updates..."
+
+    # Get current hash
+    current_hash=$(git rev-parse HEAD)
+    # Get remote hash
+    remote_hash=$(git rev-parse origin/main)
+
+    # Check if the hash is the same as the remote
+    if [[ $remote_hash == $current_hash ]]; then
+        _loading --done "Already up to date."
+        return
+    fi
+
+    # Pull the latest changes quietly
+    git pull -q origin main &
+    pull_pid=$!
+    _loading $pull_pid "Updates found. Updateing now..."
+    echo "Checkout the diff at https://github.com/akshaybabloo/dotfiles/compare/$current_hash...$remote_hash"
+    reload
 }
 
