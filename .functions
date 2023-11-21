@@ -290,9 +290,9 @@ function dotc() {
     source $script_dir/install.sh
 }
 
-## `udot` updates the dotfiles to the latest main branch
-## Usage: `udot`
-function udot() {
+## `dotu` updates the dotfiles to the latest main branch
+## Usage: `dotu`
+function dotu() {
     cd $(_whereami)
 
     git fetch -q origin main &
