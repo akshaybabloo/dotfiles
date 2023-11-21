@@ -274,18 +274,7 @@ function 7zx() {
 ## `dotc` checks if all the requirments are met for the dotfiles to work
 ## Usage: `dotc`
 function dotc() {
-    if [[ $0 == -* ]]; then
-        if [[ $SHELL == */zsh ]]; then
-            script_dir=$(dirname "$ZSH_ARGZERO")
-        elif [[ $SHELL == */bash ]]; then
-            script_dir=$(dirname "${BASH_SOURCE[0]}")
-        else
-            echo "Unsupported shell: $SHELL"
-            exit 1
-        fi
-    else
-        script_dir=$(dirname "${BASH_SOURCE[0]}")
-    fi
+    script_dir=$(_whereami)
 
     source $script_dir/install.sh
 }
