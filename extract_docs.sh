@@ -36,6 +36,10 @@ process_file() {
         # If the line starts with function or alias, it's a declaration. Extract the name and add it to the man page content
         elif [[ $line == function* ]] || [[ $line == alias* ]]; then
             name=$(echo $line | awk '{print $2}' | cut -d'=' -f1)
+            # Ignore function names starting with _
+            if [[ $name == _* ]]; then
+                continue
+            fi
             content_var+="## $name\n\n[<Badge type=\"tip\" text=\"source\" />]($baseURL/$urlSegment#L$lineno)\n\n$comments\n"
             # Reset comments
             comments=""
