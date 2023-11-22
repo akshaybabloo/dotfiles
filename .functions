@@ -271,6 +271,34 @@ function 7zx() {
     7zzs x "$file_name" -o"$dir_name"
 }
 
+## Converts all file names in the current directory to some UUID names leveing the extension intact
+## Usage: `uuidf`
+function uuidf() {
+    # Loop over all files in the current directory
+    for file in *; do
+        # Skip if it's a directory
+        if [[ -d "$file" ]]; then
+            continue
+        fi
+
+        # Extract the file extension
+        extension="${file##*.}"
+
+        # Generate a GUID
+        guid=$(uuidgen)
+
+        # Rename the file, keeping the original extension
+        mv "$file" "${guid}.${extension}"
+    done
+
+}
+
+
+# =========================================================================================================
+# ============================================== Dotfiles =================================================
+# =========================================================================================================
+
+
 ## `dotc` checks if all the requirments are met for the dotfiles to work
 ## Usage: `dotc`
 function dotc() {
