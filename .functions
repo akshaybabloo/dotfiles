@@ -84,15 +84,26 @@ function targz() {
 ## ::: info Requirements
 ## This function requires Python 3.10 or higher.
 ## :::
+## ::: info Optional Requirements
+## You can also use Caddy serve, install it from https://caddyserver.com/docs/install
+## :::
 ## Start an HTTP server from a directory, optionally specifying the port
 ## Usage: `server [path] [port]`
 function server() {
+    local path="${1:-.}"
     local port="${2:-8000}"
+    
     sleep 1 && open "http://localhost:${port}/" &
 
-    # Set the default Content-Type to `text/plain` instead of `application/octet-stream`
-    # And serve everything as UTF-8 (although not technically correct, this doesn’t break anything for binary files)
-    python3 -c $'import http.server;\nclass MyHandler(http.server.SimpleHTTPRequestHandler):\n\tdef guess_type(self, path):\n\t\text = super().guess_type(path);\n\t\tif ext == "application/octet-stream":\n\t\t\text = "text/plain";\n\t\treturn ext + ";charset=UTF-8";\n\nhttp.server.test(HandlerClass=MyHandler, port=int('$port'))'
+    # Check if Caddy server is installed
+    if command -v caddy &> /dev/null; then
+        echo "Starting server at http://localhost:${port}/"
+        caddy file-server --browse --listen :$port --root $path
+    else
+        # Set the default Content-Type to `text/plain` instead of `application/octet-stream`
+        # And serve everything as UTF-8 (although not technically correct, this doesn’t break anything for binary files)
+        python3 -c $'import http.server;\nclass MyHandler(http.server.SimpleHTTPRequestHandler):\n\tdef guess_type(self, path):\n\t\text = super().guess_type(path);\n\t\tif ext == "application/octet-stream":\n\t\t\text = "text/plain";\n\t\treturn ext + ";charset=UTF-8";\n\nhttp.server.test(HandlerClass=MyHandler, port=int('$port'))'
+    fi
 }
 
 ## Normalize `open` across Linux, macOS, and Windows.
