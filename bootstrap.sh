@@ -2,10 +2,10 @@
 
 current_dir=$(pwd)
 
-echo "Checking software dependencies..."
+printf "Checking software dependencies...\n\n"
 source $current_dir/install.sh
 
 if ! grep -q ".main" ~/.bashrc; then
-    echo ". ${current_dir}/.main" >> ~/.bashrc
+    printf "\n# Gollahalli Dotfiles\n. ${current_dir}/.main\n" >> ~/.bashrc
     source ~/.bashrc
 fi
