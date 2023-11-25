@@ -81,7 +81,7 @@ function targz() {
 	echo "${tmpFile}.gz ($((zippedSize / 1000)) kB) created successfully."
 }
 
-## ::: warning Requirements
+## ::: danger Requirements
 ## This function requires Python 3.10 or higher.
 ## :::
 ## ::: info Optional Requirements

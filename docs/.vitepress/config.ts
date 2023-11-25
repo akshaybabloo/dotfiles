@@ -4,8 +4,7 @@ import { defineConfig } from 'vitepress'
 export default defineConfig({
   title: "Dotfiles",
   description: "Helpful Dotfiles",
-  base: '/dotfiles/',
-  head: [['link', { rel: 'icon', href: '/dotfiles/favicon.ico' }]],
+  head: [['link', { rel: 'icon', href: '/favicon.ico' }]],
   themeConfig: {
     search: {
       provider: 'local'

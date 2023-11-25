@@ -1,6 +1,6 @@
 # Dotfiles
 
-[![Static Badge](https://img.shields.io/badge/dotfiles-docs-blue)](https://akshaybabloo.github.io/dotfiles/)
+[![Static Badge](https://img.shields.io/badge/dotfiles-docs-blue)](https://dotfiles.gollahalli.com)
 
 Some helpful dotfiles for your system.
 
