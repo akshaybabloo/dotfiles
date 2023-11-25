@@ -81,12 +81,14 @@ function targz() {
 	echo "${tmpFile}.gz ($((zippedSize / 1000)) kB) created successfully."
 }
 
-## ::: info Requirements
+## ::: warning Requirements
 ## This function requires Python 3.10 or higher.
 ## :::
 ## ::: info Optional Requirements
 ## You can also use Caddy serve, install it from https://caddyserver.com/docs/install
 ## :::
+## > If a caddy server is installed then that is preferred over Python.
+##
 ## Start an HTTP server from a directory, optionally specifying the port
 ## Usage: `server [path] [port]`
 function server() {
@@ -128,7 +130,7 @@ function o() {
 	fi
 }
 
-## ::: info Requirements
+## ::: danger Requirements
 ## This function requires `tree` - `sudo apt install tree`.
 ## :::
 ## `tre` is a shorthand for `tree` with hidden files and color enabled, ignoring
@@ -146,7 +148,7 @@ function tre() {
 	tree -aC -I '.git|node_modules|bower_components' --dirsfirst "$@" | less -FRNX
 }
 
-## ::: info Requirements
+## ::: danger Requirements
 ## This function requires `git` - `sudo apt install git`.
 ## :::
 ## `ginit` initailises a git repository and makes an initial commit
@@ -203,7 +205,7 @@ function dlc() {
 	mv "$temp_file" "$file"
 }
 
-## ::: info Requirements
+## ::: danger Requirements
 ## This function requires `7zzs`, see https://www.7-zip.org/download.html
 ## :::
 ## `7za` creates a 7Zip archive using the LZMA algorithm
@@ -235,7 +237,7 @@ function 7za() {
     7zzs a -t7z -m0=lzma -mx9 -mfb=64 -md=32m -ms=on "${@: -1}".7z "${@:1:$#-1}"
 }
 
-## ::: info Requirements
+## ::: danger Requirements
 ## This function requires `7zzs`, see https://www.7-zip.org/download.html
 ## :::
 ## `7zx` extracts a 7Zip archive to a directory with the same name as the archive

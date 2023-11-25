@@ -34,31 +34,31 @@ alias g="git"
 ## Remove a directory and all files
 alias rmd="rm -rf"
 
-## ::: info Requirements
+## ::: danger Requirements
 ## This alias requires `eza`, see https://github.com/akshaybabloo/fs_rs.
 ## :::
 ## Get the size of a file or directory
 alias fs="fs_rs"
 
 # Lists - make sure to have https://github.com/eza-community/eza in your path
-## ::: info Requirements
+## ::: danger Requirements
 ## This alias requires `eza`, see https://github.com/eza-community/eza.
 ## :::
 ## List all files colorized using eza
 alias ls="eza -F"
-## ::: info Requirements
+## ::: danger Requirements
 ## This alias requires `eza`, see https://github.com/eza-community/eza.
 ## :::
 ## List all files colorized in long format using eza
 alias ll="eza -alFHh --no-git"
 
-## ::: info Requirements
+## ::: danger Requirements
 ## This alias requires `cat`, see https://github.com/sharkdp/bat
 ## :::
 ## Use bat instead of cat to output file contents
 alias cat="bat"
 
-## ::: info Requirements
+## ::: danger Requirements
 ## This alias requires `btop++`, see https://github.com/aristocratos/btop
 ## :::
 ## Use btop instead of top to monitor system resources
@@ -75,7 +75,7 @@ alias reload="source ~/.bashrc"
 ## Print each PATH entry on a separate line
 alias path='echo -e ${PATH//:/\\n}'
 
-## ::: info Requirements
+## ::: danger Requirements
 ## This alias requires `httpie`, see https://httpie.io.
 ## :::
 ## Make httpie output more readable
