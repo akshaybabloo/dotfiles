@@ -39,6 +39,10 @@ function _loading() {
     echo -e "\b\b Done!"
 }
 
+function _redText() { printf "\e[1m\e[31m%s\e[0m\n" "$1"; }
+function _greenText() { printf "\e[1m\e[32m%s\e[0m\n" "$1"; }
+function _blueText() { printf "\e[1m\e[94m%s\e[0m\n" "$1"; }
+
 
 ## Create a new directory and enter it
 ## Usage: `mkd <dirname>`
@@ -166,7 +170,7 @@ function ginit() {
 
 ## `echoerr` echoes the first argument to stderr. Useful for printing errors.
 ## Usage: `echoerr "Error: Something went wrong."`
-function echoerr() { printf "%s\n" "$*" >&2; }
+function echoerr() { _redText "$*" >&2; }
 
 ## `dlc` deletes all lines that start with the specified comment symbol
 ## Usage: `dlc "<file>" "<comment_symbol>"`
@@ -373,4 +377,3 @@ function dotu() {
     echo "Checkout the diff at https://github.com/akshaybabloo/dotfiles/compare/$current_hash...$remote_hash"
     reload
 }
-
