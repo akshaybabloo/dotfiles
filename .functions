@@ -177,7 +177,7 @@ function dlc() {
 
 	# Check if the file exists, if not display an error message and return
 	if [[ ! -f $file ]]; then
-		echo "Error: $file not found."
+		echoerr "Error: $file not found."
 		return
 	fi
 
@@ -245,7 +245,7 @@ function 7za() {
 function 7zx() {
     # Check if 7zzs is installed
     if ! command -v 7zzs &> /dev/null; then
-        echo "Error: 7zzs not found. Please install 7zzs from https://www.7-zip.org/download.html"
+        echoerr "Error: 7zzs not found. Please install 7zzs from https://www.7-zip.org/download.html"
         return
     fi
 
