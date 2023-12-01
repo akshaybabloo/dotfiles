@@ -26,7 +26,7 @@ check_dependencies() {
     local has_missing=false
 
     for key in "${!array[@]}"; do
-        if ! command -v "$key" &> /dev/null; then
+        if ! command -v "$key" &>/dev/null; then
             if [ "$has_missing" = false ]; then
                 if [ "$any_missing" = false ]; then
                     echo "Here are some missing dependencies"
