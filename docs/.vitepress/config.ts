@@ -5,6 +5,7 @@ export default defineConfig({
   title: "Dotfiles",
   description: "Helpful Dotfiles",
   head: [['link', { rel: 'icon', href: '/favicon.ico' }]],
+  srcExclude: ['**/README.md'],
   themeConfig: {
     search: {
       provider: 'local'
