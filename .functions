@@ -336,11 +336,31 @@ function snapc() {
         done
 }
 
+## `gclone` clones a git repository and cd's into it
+## Usage: `gclone <git_url>`
+function gclone() {
+    # Check if git is installed
+    if ! command -v git &> /dev/null; then
+        echoerr "Error: git not found. Please install git from https://git-scm.com/downloads"
+        return
+    fi
+
+    # Check if the first argument is not empty
+    if [[ -z $1 ]]; then
+        echoerr "Error: No arguments provided."
+        return
+    fi
+
+    # Clone the repository
+    git clone "$1" && cd "$(basename "$1" .git)"
+}
+
 
 # =========================================================================================================
 # ============================================== Dotfiles =================================================
 # =========================================================================================================
 
+## h2: Dotfiles Related Functions
 
 ## `dotc` checks if all the requirments are met for the dotfiles to work
 ## Usage: `dotc`
