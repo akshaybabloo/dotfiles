@@ -21,6 +21,10 @@ export default defineConfig({
     sidebar: [
     ],
 
+    outline: {
+      level: "deep",
+    },
+
     socialLinks: [
       { icon: 'github', link: 'https://github.com/akshaybabloo/dotfiles' }
     ],

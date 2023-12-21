@@ -44,6 +44,8 @@ function _greenText() { printf "\e[1m\e[32m%s\e[0m\n" "$1"; }
 function _blueText() { printf "\e[1m\e[94m%s\e[0m\n" "$1"; }
 
 
+## h2: General Functions
+
 ## Create a new directory and enter it
 ## Usage: `mkd <dirname>`
 function mkd() {
@@ -335,6 +337,8 @@ function snapc() {
             snap remove "$snapname" --revision="$revision"
         done
 }
+
+## h2: Git Related Functions
 
 ## `gclone` clones a git repository and cd's into it
 ## Usage: `gclone <git_url>`

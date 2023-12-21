@@ -3,6 +3,7 @@
 function_content=""
 alias_content=""
 comments=""
+sub_title=""
 
 process_file() {
     local file=$1
@@ -24,29 +25,30 @@ process_file() {
     while IFS= read -r line; do
         ((lineno++))  # Increment line number for every line
 
-        # If the line starts with ##, it's a comment. Add it to the comments variable
-        if [[ $line == \#\#* ]]; then
-            # Trim the ## and space
+        # Check for '## h2:' pattern first
+        if [[ $line == \#\#\ h2:* ]]; then
+            # Process and trim for '## h2:' lines
+            trimmed_line=$(echo $line | sed 's/^## h2:[[:space:]]*//')
+            sub_title+="## $trimmed_line\n"
+        # Then check for '##' pattern
+        elif [[ $line == \#\#* ]]; then
+            # Process and trim for '##' lines
             trimmed_line=$(echo $line | sed 's/^##[[:space:]]*//')
-            # If the trimmed line starts with "Usage:", add a newline before it and make it bold
             if [[ $trimmed_line == Usage:* ]]; then
                 trimmed_line="\n**$trimmed_line**"
             fi
             comments+="$trimmed_line\n"
-        # If the line starts with function or alias, it's a declaration. Extract the name and add it to the man page content
         elif [[ $line == function* ]] || [[ $line == alias* ]]; then
             name=$(echo $line | awk '{print $2}' | cut -d'=' -f1)
-            # Ignore function names starting with _
             if [[ $name == _* ]]; then
                 continue
             fi
-            content_var+="## $name\n\n[<Badge type=\"tip\" text=\"source\" />]($baseURL/$urlSegment#L$lineno)\n\n$comments\n"
-            # Reset comments
+            content_var+="$sub_title\n\n### $name\n\n[<Badge type=\"tip\" text=\"source\" />]($baseURL/$urlSegment#L$lineno)\n\n$comments\n"
             comments=""
+            sub_title=""
         fi
     done < "$file"
 }
-
 
 process_file ".functions" "Functions" function_content
 process_file ".aliases" "Aliases" alias_content

@@ -2,6 +2,8 @@
 
 # Some taken from https://github.com/mathiasbynens/dotfiles/blob/main/.aliases
 
+## h2: Directory
+
 # Easier navigation: .., ..., ...., ....., ~ and -
 ## Go back one directory back
 alias ..="cd .."
@@ -16,7 +18,8 @@ alias ~="cd ~" # `cd` is probably faster to type though
 ## Toggle between directories
 alias -- -="cd -"
 
-# Shortcuts
+## h2: Shortcuts
+
 ## Clear terminal
 alias c="clear"
 ## Change directory to ~/Downloads
@@ -33,6 +36,8 @@ alias pw="cd ~/code/work"
 alias g="git"
 ## Remove a directory and all files
 alias rmd="rm -rf"
+
+## h2: Shortcuts for Executables
 
 ## ::: danger Requirements
 ## This alias requires `eza`, see https://github.com/akshaybabloo/fs_rs.
@@ -63,6 +68,8 @@ alias cat="bat"
 ## :::
 ## Use btop instead of top to monitor system resources
 alias top="btop"
+
+## h2: Other Aliases
 
 # Always enable colored `grep` output
 alias grep='grep --color=auto'
