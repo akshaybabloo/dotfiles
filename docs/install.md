@@ -7,7 +7,7 @@ next:
     link: '/functions'
 ---
 
-# Dotfiles
+# Using Dotfiles
 
 Some helpful dotfiles for your system.
 

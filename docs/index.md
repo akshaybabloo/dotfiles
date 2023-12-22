@@ -7,8 +7,8 @@ hero:
   tagline: "Use it at your own risk :p"
   actions:
     - theme: brand
-      text: Get Started
-      link: /get-started
+      text: Install
+      link: /install
     - theme: alt
       text: View on GitHub
       link: https://github.com/akshaybabloo/dotfiles
