@@ -48,7 +48,7 @@ function _blueText() { printf "\e[1m\e[94m%s\e[0m\n" "$1"; }
 
 ## `die` echoes the first argument as an error message and exits the shell
 ## Usage: `die "Error: Something went wrong."`
-die () { echoerr $@ ; exit 1; }
+function die() { echoerr $@ ; exit 1; }
 
 ## Create a new directory and enter it
 ## Usage: `mkd <dirname>`
