@@ -32,5 +32,12 @@ export default defineConfig({
     footer: {
       message: `Made with ❤️ by <a href='https://gollahalli.com'>Akshay Raj Gollahalli</a>`,
     }
-  }
+  },
+  sitemap: {
+    hostname: 'https://dotfiles.gollahalli.com',
+    transformItems: (items) => {
+      items = items.filter((item) => !item.url.includes('auto'));
+      return items;
+    }
+  },
 })
