@@ -363,6 +363,42 @@ function gclone() {
     git clone "$1" && cd "$(basename "$1" .git)"
 }
 
+## `gsubd` removed the current Git submodule and its entry in `.gitmodules`
+## Usage: `gsubd <submodule_path>`
+function gsubd() {
+    # Check if git is installed
+    if ! command -v git &> /dev/null; then
+        echoerr "Error: git not found. Please install git from https://git-scm.com/downloads"
+        return
+    fi
+
+    local SUBMODULE_PATH="$1"
+
+    # Check if the first argument is not empty
+    if [[ -z $SUBMODULE_PATH ]]; then
+        echoerr "Error: No path provided."
+        return
+    fi
+
+    # Check if the submodule exists
+    if [[ ! -e $SUBMODULE_PATH ]]; then
+        echoerr "Error: $SUBMODULE_PATH not found."
+        return
+    fi
+
+    # Remove the submodule entry from .git/config
+    git submodule deinit -f "$SUBMODULE_PATH"
+
+    # Remove the submodule from the index and working tree
+    git rm -f $SUBMODULE_PATH
+
+    # Clean up the .gitmodules file
+    git config -f .gitmodules --remove-section submodule.$SUBMODULE_PATH 2> /dev/null
+
+    # Remove the leftover submodule directory in .git/modules
+    rm -rf .git/modules/$SUBMODULE_PATH
+}
+
 
 # =========================================================================================================
 # ============================================== Dotfiles =================================================
