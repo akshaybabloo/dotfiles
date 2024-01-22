@@ -399,7 +399,6 @@ function gsubd() {
     rm -rf .git/modules/$SUBMODULE_PATH
 }
 
-
 # =========================================================================================================
 # ============================================== Dotfiles =================================================
 # =========================================================================================================
@@ -440,4 +439,19 @@ function dotu() {
     _loading $pull_pid "Updates found. Updateing now..."
     echo "Checkout the diff at https://github.com/akshaybabloo/dotfiles/compare/$current_hash...$remote_hash"
     reload
+}
+
+## `dotls` lists all the aliases and functions in the dotfiles and the shell
+## Usage: `dotls`
+function dotls() {
+    script_dir=$(_whereami)
+
+    _blueText "Aliases"
+    grep -E "^alias" $script_dir/.aliases | sed -E "s/alias //g"
+
+    _blueText "Functions"
+    grep -E "^function" $script_dir/.functions | sed -E "s/function //g"
+
+    _blueText "Shell"
+    grep -E "^function" $script_dir/.shell | sed -E "s/function //g"
 }
