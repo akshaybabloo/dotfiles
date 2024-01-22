@@ -1,5 +1,10 @@
 #!/bin/bash
 
+if [ "$EUID" -eq 0 ]; then
+    printf "\e[1m\e[31mDo not run this script as root!\e[0m\n"
+    exit 1
+fi
+
 current_dir=$(pwd)
 
 printf "Checking software dependencies...\n\n"

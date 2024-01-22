@@ -9,6 +9,10 @@ next:
 
 # Using Dotfiles
 
+::: danger
+Do not run the install script with `sudo`. Aliases and functions can be used with `sudo` if you want to.
+:::
+
 Some helpful dotfiles for your system.
 
 ## Installation
