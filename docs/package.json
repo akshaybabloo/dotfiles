@@ -13,5 +13,8 @@
     "docs:dev": "just -f ../justfile docs && vitepress dev",
     "docs:build": "vitepress build",
     "docs:preview": "vitepress preview"
+  },
+  "dependencies": {
+    "vite": "^5.0.12"
   }
 }
