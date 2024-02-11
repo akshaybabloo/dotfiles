@@ -3,7 +3,20 @@ Installs third party binaries and keeps track of their versions.
 """
 
 from dataclasses import dataclass
-from typing import Tuple, List
+from pathlib import Path
+from typing import List, Optional
+
+HOME_BIN = Path.home().joinpath("bin")
+
+
+@dataclass
+class Files:
+    name: str
+    exists: bool = False
+
+    def __post_init__(self):
+        if not self.name:
+            raise ValueError("Name cannot be empty")
 
 
 @dataclass
@@ -23,8 +36,8 @@ class SHAInfo:
 class Binaries:
     name: str
     url: str
-    sha: SHAInfo | None
-    file_names: List[str]
+    files: List[Files]
+    sha: Optional[SHAInfo] = None
     description: str = ""
 
     def __post_init__(self):
@@ -36,115 +49,160 @@ class Binaries:
         if not self.url.startswith("http://") and not self.url.startswith("https://"):
             raise ValueError("URL must start with 'http://' or 'https://'")
 
-        # Validate that file_names is a list with at least one entry
-        if not self.file_names or not isinstance(self.file_names, list):
-            raise ValueError("file_names must be a non-empty list")
+        # Validate that files is a list with at least one entry
+        if not self.files or not isinstance(self.files, list):
+            raise ValueError("files must be a non-empty list")
 
 
-binaries: Tuple[Binaries, ...] = (
+binaries: List[Binaries] = [
     Binaries(
         name="rclone",
-        url="",
+        url="https://",
         sha=None,
-        file_names=[],
+        files=[Files(name="rclone")],
     ),
     Binaries(
         name="Fs CLI",
-        url="",
+        url="https://",
         sha=None,
-        file_names=[],
+        files=[Files(name="fs_rs")],
     ),
     Binaries(
         name="7-Zip CLI",
-        url="",
+        url="https://",
         sha=None,
-        file_names=["7zzs"],
+        files=[Files(name="7zzs")],
     ),
     Binaries(
         name="caddy",
-        url="",
+        url="https://",
         sha=None,
-        file_names=[],
+        files=[Files(name="caddy")],
     ),
     Binaries(
         name="WebP",
-        url="",
+        url="https://",
         sha=None,
-        file_names=["cwebp", "gif2webp"],
+        files=[Files(name="cwebp"), Files(name="gif2webp")],
     ),
     Binaries(
         name="d2",
-        url="",
+        url="https://",
         sha=None,
-        file_names=[],
+        files=[Files(name="d2")],
     ),
     Binaries(
         name="ffmpeg",
-        url="",
+        url="https://",
         sha=None,
-        file_names=["ffmpeg", "ffprobe"],
+        files=[Files(name="ffmpeg"), Files(name="ffprobe")],
     ),
     Binaries(
         name="Git Alias",
-        url="",
+        url="https://",
         sha=None,
-        file_names=["git-alias"],
+        files=[Files(name="git-alias")],
     ),
     Binaries(
         name="Hugo",
-        url="",
+        url="https://",
         sha=None,
-        file_names=["hugo"],
+        files=[Files(name="hugo")],
     ),
     Binaries(
         name="Just",
-        url="",
+        url="https://",
         sha=None,
-        file_names=["just"],
+        files=[Files(name="just")],
     ),
     Binaries(
         name="Mage",
-        url="",
+        url="https://",
         sha=None,
-        file_names=["mage"],
+        files=[Files(name="mage")],
     ),
     Binaries(
         name="Oh My Posh",
-        url="",
+        url="https://",
         sha=None,
-        file_names=["oh-my-posh", "oh-my-posh.json", "themes/"],
+        files=[
+            Files(name="oh-my-posh"),
+            Files(name="oh-my-posh.json"),
+            Files(name="themes/"),
+        ],
     ),
     Binaries(
         name="Typst",
-        url="",
+        url="https://",
         sha=None,
-        file_names=["typst"],
+        files=[Files(name="typst")],
     ),
     Binaries(
         name="DNode",
-        url="",
+        url="https://",
         sha=None,
-        file_names=["dnode"],
+        files=[Files(name="dnode")],
     ),
-    Binaries(
-        name="",
-        url="",
-        sha=None,
-        file_names=[],
-    ),
-    Binaries(
-        name="",
-        url="",
-        sha=None,
-        file_names=[],
-    ),
-    Binaries(
-        name="",
-        url="",
-        sha=None,
-        file_names=[],
-    ),
-)
+]
+
+
+def is_binary_installed() -> List[Binaries]:
+    """
+    Check if the binaries are installed in the home bin directory.
+
+    :return: List of Binaries objects with the `exists` attribute updated
+    """
+    for binary in binaries:
+        for file in binary.files:
+            file.exists = HOME_BIN.joinpath(file.name).exists()
+    return binaries
+
+
+def binaries_to_table(binaries_list: List[Binaries]) -> str:
+    """
+    Generate a table of binaries and their files, with a column indicating whether each file exists.
+    :param binaries_list: List of Binaries objects
+    :return: String representation of the table
+    """
+    # Initial maximum lengths based on header titles
+    max_binary_name_length = len("Binary Name")
+    max_file_name_length = len("File Name")
+
+    # Update maximum lengths based on the content
+    max_binary_name_length = max(
+        max_binary_name_length,
+        max((len(binary.name) for binary in binaries_list), default=0),
+    )
+    max_file_name_length = max(
+        max_file_name_length,
+        max(
+            (len(file.name) for binary in binaries_list for file in binary.files),
+            default=0,
+        ),
+    )
+
+    # Prepare header with appropriate spacing
+    header = f"{'Binary Name'.ljust(max_binary_name_length)}  {'File Name'.ljust(max_file_name_length)}  Exists"
+    # Prepare separator line based on the length of the header
+    separator = "-" * (
+        max_binary_name_length + max_file_name_length + len("  Exists") + 4
+    )  # +4 for the spaces between columns
+
+    lines = [header, separator]
+
+    # Generate table rows without unnecessarily repeating binary names for each file
+    for binary in binaries:
+        binary_name_displayed = False
+        for file in binary.files:
+            binary_name = binary.name if not binary_name_displayed else ""
+            file_name_padded = file.name.ljust(max_file_name_length)
+            exists_marker = "[Y]" if file.exists else "[N]"
+            lines.append(
+                f"{binary_name.ljust(max_binary_name_length)}  {file_name_padded}  {exists_marker}"
+            )
+            binary_name_displayed = True
+
+    return "\n".join(lines)
 
 
 def github_releases():
@@ -156,10 +214,6 @@ def install_binaries():
 
 
 def check_binaries_running():
-    pass
-
-
-def is_binary_installed():
     pass
 
 
@@ -176,4 +230,4 @@ def final_checks():
 
 
 if __name__ == "__main__":
-    pass
+    print(binaries_to_table(is_binary_installed()))
