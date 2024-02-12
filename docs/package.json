@@ -15,6 +15,6 @@
     "docs:preview": "vitepress preview"
   },
   "dependencies": {
-    "vite": "^5.0.12"
+    "vite": "^5.1.1"
   }
 }
