@@ -158,51 +158,39 @@ def is_binary_installed() -> List[Binaries]:
     return binaries
 
 
-def binaries_to_table(binaries_list: List[Binaries]) -> str:
-    """
-    Generate a table of binaries and their files, with a column indicating whether each file exists.
-    :param binaries_list: List of Binaries objects
-    :return: String representation of the table
-    """
-    # Initial maximum lengths based on header titles
-    max_binary_name_length = len("Binary Name")
-    max_file_name_length = len("File Name")
+def binaries_to_table(binaries: List[Binaries]) -> str:
+    headers = ["Binary Name", "File Name", "Exists"]
+    col_widths = {
+        "Binary Name": max(max((len(b.name) for b in binaries), default=0), len(headers[0])),
+        "File Name": max(max((len(f.name) for b in binaries for f in b.files), default=0), len(headers[1])),
+        "Exists": len(headers[2]) + 2  # Plus 2 for padding around [x] or [ ]
+    }
 
-    # Update maximum lengths based on the content
-    max_binary_name_length = max(
-        max_binary_name_length,
-        max((len(binary.name) for binary in binaries_list), default=0),
-    )
-    max_file_name_length = max(
-        max_file_name_length,
-        max(
-            (len(file.name) for binary in binaries_list for file in binary.files),
-            default=0,
-        ),
-    )
+    separator = "+" + "+".join(["-" * (col_widths[header] + 2) for header in headers]) + "+"
+    header_row = "|" + "|".join([f" {header.center(col_widths[header])} " for header in headers]) + "|"
+    table = [separator, header_row, separator]
 
-    # Prepare header with appropriate spacing
-    header = f"{'Binary Name'.ljust(max_binary_name_length)}  {'File Name'.ljust(max_file_name_length)}  Exists"
-    # Prepare separator line based on the length of the header
-    separator = "-" * (
-        max_binary_name_length + max_file_name_length + len("  Exists") + 4
-    )  # +4 for the spaces between columns
-
-    lines = [header, separator]
-
-    # Generate table rows without unnecessarily repeating binary names for each file
     for binary in binaries:
         binary_name_displayed = False
+        if not binary.files:  # Handle binaries with no files
+            empty_row = "|" + f" {binary.name.ljust(col_widths['Binary Name'])} " + \
+                        "|" + " " * col_widths['File Name'] + \
+                        "|" + " " * col_widths['Exists'] + "|"
+            table.append(empty_row)
+            table.append(separator)
         for file in binary.files:
             binary_name = binary.name if not binary_name_displayed else ""
-            file_name_padded = file.name.ljust(max_file_name_length)
-            exists_marker = "[Y]" if file.exists else "[N]"
-            lines.append(
-                f"{binary_name.ljust(max_binary_name_length)}  {file_name_padded}  {exists_marker}"
-            )
+            exists_marker = "[x]" if file.exists else "[ ]"
+            data_row = "|" + f" {binary_name.ljust(col_widths['Binary Name'])} " + \
+                       "|" + f" {file.name.ljust(col_widths['File Name'])} " + \
+                       "|" + f" {exists_marker.center(col_widths['Exists'])} " + "|"
+            table.append(data_row)
             binary_name_displayed = True
+        table.append(separator)  # Add a separator after each binary's files for clarity
 
-    return "\n".join(lines)
+    return "\n".join(table)
+
+
 
 
 def github_releases():
