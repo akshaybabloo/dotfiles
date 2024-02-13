@@ -2,6 +2,8 @@
 Installs third party binaries and keeps track of their versions.
 """
 
+import re
+import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Optional
@@ -10,9 +12,23 @@ HOME_BIN = Path.home().joinpath("bin")
 
 
 @dataclass
+class VersionCommand:
+    args: List[str]
+    regex_version: str = ""
+
+    def __post_init__(self):
+        if not self.regex_version:
+            raise ValueError("Command cannot be empty")
+        if not self.args:
+            raise ValueError("Args cannot be empty")
+
+
+@dataclass
 class Files:
     name: str
     exists: bool = False
+    version: str = None
+    version_command: Optional[VersionCommand] = None
 
     def __post_init__(self):
         if not self.name:
@@ -27,9 +43,7 @@ class SHAInfo:
     def __post_init__(self):
         # Example validation: Ensure sha_type is one of the expected values
         if self.type not in ["SHA-1", "SHA-256", "SHA-512"]:
-            raise ValueError(
-                f"sha_type must be one of 'SHA-1', 'SHA-256', 'SHA-512', not {self.type}"
-            )
+            raise ValueError(f"sha_type must be one of 'SHA-1', 'SHA-256', 'SHA-512', not {self.type}")
 
 
 @dataclass
@@ -65,68 +79,129 @@ binaries: List[Binaries] = [
         name="Fs CLI",
         url="https://",
         sha=None,
-        files=[Files(name="fs_rs")],
+        files=[
+            Files(
+                name="fs_rs",
+                version_command=VersionCommand(args=["--version"], regex_version=r"\d+\.\d+\.\d+"),
+            )
+        ],
     ),
     Binaries(
         name="7-Zip CLI",
         url="https://",
         sha=None,
-        files=[Files(name="7zzs")],
+        files=[
+            Files(
+                name="7zzs",
+                version_command=VersionCommand(args=[""], regex_version=r"\d+\.\d+"),
+            )
+        ],
     ),
     Binaries(
         name="caddy",
         url="https://",
         sha=None,
-        files=[Files(name="caddy")],
+        files=[
+            Files(
+                name="caddy",
+                version_command=VersionCommand(args=["version"], regex_version=r"v\d+\.\d+\.\d+"),
+            )
+        ],
     ),
     Binaries(
         name="WebP",
         url="https://",
         sha=None,
-        files=[Files(name="cwebp"), Files(name="gif2webp")],
+        files=[
+            Files(
+                name="cwebp",
+                version_command=VersionCommand(args=["-version"], regex_version=r"\d+\.\d+\.\d+"),
+            ),
+            Files(
+                name="gif2webp",
+                version_command=VersionCommand(args=["-version"], regex_version=r"\d+\.\d+\.\d+"),
+            ),
+        ],
     ),
     Binaries(
         name="d2",
         url="https://",
         sha=None,
-        files=[Files(name="d2")],
+        files=[
+            Files(
+                name="d2",
+                version_command=VersionCommand(args=["--version"], regex_version=r"v\d+\.\d+\.\d+"),
+            )
+        ],
     ),
     Binaries(
         name="ffmpeg",
         url="https://",
         sha=None,
-        files=[Files(name="ffmpeg"), Files(name="ffprobe")],
+        files=[
+            Files(
+                name="ffmpeg",
+                version_command=VersionCommand(args=["-version"], regex_version=r"\d+\.\d+(?:\.\d+)?-static"),
+            ),
+            Files(
+                name="ffprobe",
+                version_command=VersionCommand(args=["-version"], regex_version=r"\d+\.\d+(?:\.\d+)?-static"),
+            ),
+        ],
     ),
     Binaries(
         name="Git Alias",
         url="https://",
         sha=None,
-        files=[Files(name="git-alias")],
+        files=[
+            Files(
+                name="git-alias",
+                version_command=VersionCommand(args=["--version"], regex_version=r"\d+\.\d+\.\d+"),
+            )
+        ],
     ),
     Binaries(
         name="Hugo",
         url="https://",
         sha=None,
-        files=[Files(name="hugo")],
+        files=[
+            Files(
+                name="hugo",
+                version_command=VersionCommand(args=["version"], regex_version=r"v\d+\.\d+\.\d+"),
+            )
+        ],
     ),
     Binaries(
         name="Just",
         url="https://",
         sha=None,
-        files=[Files(name="just")],
+        files=[
+            Files(
+                name="just",
+                version_command=VersionCommand(args=["--version"], regex_version=r"\d+\.\d+\.\d+"),
+            )
+        ],
     ),
     Binaries(
         name="Mage",
         url="https://",
         sha=None,
-        files=[Files(name="mage")],
+        files=[
+            Files(
+                name="mage",
+                version_command=VersionCommand(args=["-version"], regex_version=r"\d+\.\d+\.\d+"),
+            )
+        ],
     ),
     Binaries(
         name="Oh My Posh",
         url="https://",
         sha=None,
         files=[
-            Files(name="oh-my-posh"),
+            Files(
+                name="oh-my-posh",
+                version_command=VersionCommand(args=["--version"], regex_version=r"\d+\.\d+\.\d+"),
+            ),
             Files(name="oh-my-posh.json"),
             Files(name="themes/"),
         ],
@@ -135,13 +210,23 @@ binaries: List[Binaries] = [
         name="Typst",
         url="https://",
         sha=None,
-        files=[Files(name="typst")],
+        files=[
+            Files(
+                name="typst",
+                version_command=VersionCommand(args=["--version"], regex_version=r"\d+\.\d+\.\d+"),
+            )
+        ],
     ),
     Binaries(
         name="DNode",
         url="https://",
         sha=None,
-        files=[Files(name="dnode")],
+        files=[
+            Files(
+                name="dnode",
+                version_command=VersionCommand(args=["--version"], regex_version=r"\d+\.\d+\.\d+"),
+            )
+        ],
     ),
 ]
 
@@ -154,43 +239,68 @@ def is_binary_installed() -> List[Binaries]:
     """
     for binary in binaries:
         for file in binary.files:
-            file.exists = HOME_BIN.joinpath(file.name).exists()
+            path = HOME_BIN.joinpath(file.name)
+            if path.exists():
+                file.exists = True
+                if file.version_command:
+                    command = [path]
+                    if file.version_command.args[0] != "":
+                        command.append(*file.version_command.args)
+                    call = subprocess.run(
+                        command,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        text=True,
+                    )
+                    version = call.stdout
+                    match = re.search(rf"{file.version_command.regex_version}", version)
+                    if match and not path.is_dir():
+                        file.version = match.group(0)
+                if path.is_dir() or path.suffix == ".json":
+                    file.version = ""
     return binaries
 
 
-def binaries_to_table(binaries: List[Binaries]) -> str:
-    headers = ["Binary Name", "File Name", "Exists"]
+def binaries_to_table(bin_files: List[Binaries]) -> str:
+    headers = ["Binary Name", "File Name", "Version", "Exists"]
     col_widths = {
-        "Binary Name": max(max((len(b.name) for b in binaries), default=0), len(headers[0])),
-        "File Name": max(max((len(f.name) for b in binaries for f in b.files), default=0), len(headers[1])),
-        "Exists": len(headers[2]) + 2  # Plus 2 for padding around [x] or [ ]
+        "Binary Name": max(max((len(b.name) for b in bin_files), default=0), len(headers[0])),
+        "File Name": max(
+            max((len(f.name) for b in bin_files for f in b.files), default=0),
+            len(headers[1]),
+        ),
+        "Version": max(
+            max((len(str(f.version)) for b in bin_files for f in b.files), default=0),
+            len(headers[2]),
+        ),
+        "Exists": len("Exists") + 2,  # Plus 2 for padding around [x] or [ ]
     }
 
     separator = "+" + "+".join(["-" * (col_widths[header] + 2) for header in headers]) + "+"
     header_row = "|" + "|".join([f" {header.center(col_widths[header])} " for header in headers]) + "|"
     table = [separator, header_row, separator]
 
-    for binary in binaries:
+    for binary in bin_files:
         binary_name_displayed = False
-        if not binary.files:  # Handle binaries with no files
-            empty_row = "|" + f" {binary.name.ljust(col_widths['Binary Name'])} " + \
-                        "|" + " " * col_widths['File Name'] + \
-                        "|" + " " * col_widths['Exists'] + "|"
-            table.append(empty_row)
-            table.append(separator)
         for file in binary.files:
             binary_name = binary.name if not binary_name_displayed else ""
             exists_marker = "[x]" if file.exists else "[ ]"
-            data_row = "|" + f" {binary_name.ljust(col_widths['Binary Name'])} " + \
-                       "|" + f" {file.name.ljust(col_widths['File Name'])} " + \
-                       "|" + f" {exists_marker.center(col_widths['Exists'])} " + "|"
+            data_row = (
+                "|"
+                + f" {binary_name.ljust(col_widths['Binary Name'])} "
+                + "|"
+                + f" {file.name.ljust(col_widths['File Name'])} "
+                + "|"
+                + f" {str(file.version).ljust(col_widths['Version'])} "
+                + "|"
+                + f" {exists_marker.center(col_widths['Exists'])} "
+                + "|"
+            )
             table.append(data_row)
             binary_name_displayed = True
         table.append(separator)  # Add a separator after each binary's files for clarity
 
     return "\n".join(table)
-
-
 
 
 def github_releases():
