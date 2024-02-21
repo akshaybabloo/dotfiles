@@ -55,7 +55,7 @@ alias ls="eza -F"
 ## This alias requires `eza`, see https://github.com/eza-community/eza.
 ## :::
 ## List all files colorized in long format using eza
-alias ll="eza -alFHh --no-git"
+alias ll="eza -alHhF --no-git"
 
 ## ::: danger Requirements
 ## This alias requires `cat`, see https://github.com/sharkdp/bat
