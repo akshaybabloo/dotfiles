@@ -69,6 +69,12 @@ alias cat="bat"
 ## Use btop instead of top to monitor system resources
 alias top="btop"
 
+## ::: danger Requirements
+## This alias required that you have JDK installed.
+## :::
+## Use `jdk` to update the default Java version
+alias jdk="update-java-alternatives"
+
 ## h2: Other Aliases
 
 # Always enable colored `grep` output
