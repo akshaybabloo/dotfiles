@@ -57,38 +57,64 @@ function mkd() {
 }
 
 ## Create a .tar.gz archive, using `zopfli`, `pigz` or `gzip` for compression
-## Usage: `targz <filename> <...source>`
+## Usage: `Usage: targz [--name custom_name] <path to file or directory>...`
 function targz() {
-	local tmpFile="${@%/}.tar"
-	tar -cvf "${tmpFile}" --exclude=".DS_Store" "${@}" || return 1
+    local outputName="compressed_files"
+    local files=()
 
-	size=$(
-		stat -f"%z" "${tmpFile}" 2>/dev/null # macOS `stat`
-		stat -c"%s" "${tmpFile}" 2>/dev/null # GNU `stat`
-	)
+    # Parse arguments
+    for arg in "$@"; do
+        case "$arg" in
+            --name)
+                outputNameSet=true
+                ;;
+            *)
+                if [[ "$outputNameSet" == true ]]; then
+                    outputName="$arg"
+                    outputNameSet=false
+                else
+                    files+=("$arg")
+                fi
+                ;;
+        esac
+    done
 
-	local cmd=""
-	if ((size < 52428800)) && hash zopfli 2>/dev/null; then
-		# the .tar file is smaller than 50 MB and Zopfli is available; use it
-		cmd="zopfli"
-	else
-		if hash pigz 2>/dev/null; then
-			cmd="pigz"
-		else
-			cmd="gzip"
-		fi
-	fi
+    # Check if any files were provided
+    if [ ${#files[@]} -eq 0 ]; then
+        echo "Usage: targz [--name custom_name] <path to file or directory>..."
+        return 1
+    fi
 
-	echo "Compressing .tar ($((size / 1000)) kB) using \`${cmd}\`…"
-	"${cmd}" -v "${tmpFile}" || return 1
-	[ -f "${tmpFile}" ] && rm "${tmpFile}"
+    # Check for existing compressed file and increment name if exists
+    local tmpFile="${outputName}.tar"
+    local counter=0
+    while [ -f "${tmpFile}.gz" ]; do
+        let counter++
+        tmpFile="${outputName}${counter}.tar"
+    done
 
-	zippedSize=$(
-		stat -f"%z" "${tmpFile}.gz" 2>/dev/null # macOS `stat`
-		stat -c"%s" "${tmpFile}.gz" 2>/dev/null # GNU `stat`
-	)
+    # Create tar file
+    tar -cvf "${tmpFile}" --exclude=".DS_Store" "${files[@]}" || return 1
 
-	echo "${tmpFile}.gz ($((zippedSize / 1000)) kB) created successfully."
+    # Determine compression command
+    local cmd=""
+    local size=$(stat -c"%s" "${tmpFile}" 2>/dev/null || stat -f"%z" "${tmpFile}" 2>/dev/null)
+    if ((size < 52428800)) && command -v zopfli >/dev/null; then
+        cmd="zopfli"
+    else
+        if command -v pigz >/dev/null; then
+            cmd="pigz"
+        else
+            cmd="gzip"
+        fi
+    fi
+
+    echo "Compressing .tar ($((size / 1000)) kB) using \`${cmd}\`…"
+    "${cmd}" -v "${tmpFile}" || return 1
+    [ -f "${tmpFile}" ] && rm "${tmpFile}"
+
+    local zippedSize=$(stat -c"%s" "${tmpFile}.gz" 2>/dev/null || stat -f"%z" "${tmpFile}.gz" 2>/dev/null)
+    echo "${tmpFile}.gz ($((zippedSize / 1000)) kB) created successfully."
 }
 
 ## ::: danger Requirements
