@@ -509,9 +509,9 @@ function dotls() {
     _blueText "Aliases"
     grep -E "^alias" $script_dir/.aliases | sed -E "s/alias //g"
 
+    echo -e "\n"
+
     _blueText "Functions"
     grep -E "^function" $script_dir/.functions | sed -E "s/function //g"
 
-    _blueText "Shell"
-    grep -E "^function" $script_dir/.shell | sed -E "s/function //g"
 }
