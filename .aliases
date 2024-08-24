@@ -36,6 +36,12 @@ alias pw="cd ~/code/work"
 alias g="git"
 ## Remove a directory and all files
 alias rmd="rm -rf"
+## ::: danger Requirements
+## This alias requires `7zzs`, see https://www.7-zip.org/download.html.
+## :::
+## Extract/compress archives using 7-zip - use: `7z <file>`
+alias 7z="7zzs"
+
 
 ## h2: Shortcuts for Executables
 
