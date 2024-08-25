@@ -244,7 +244,7 @@ function dlc() {
 ## ::: danger Requirements
 ## This function requires `7zzs`, see https://www.7-zip.org/download.html
 ## :::
-## `7za` creates a 7Zip archive using the LZMA algorithm
+## `7za` creates a 7Zip archive using the LZMA2 algorithm
 ## Usage: `7za <directory>` or `7za <filename1> <filename2> <...> <filenameN> <archive_name>`
 function 7za() {
     if ! command -v 7zzs &> /dev/null; then
@@ -260,7 +260,7 @@ function 7za() {
 
     if [[ -d $1 ]]; then
         local dir_name=$(basename "$1")
-        7zzs a -t7z -m0=lzma -mx9 -mfb=64 -md=32m -ms=on "${dir_name}".7z "$1"
+        7zzs a -t7z -m0=LZMA2 -mx9 -mfb=64 -md=32m -ms=on "${dir_name}".7z "$1"
         return
     fi
 
@@ -270,7 +270,7 @@ function 7za() {
         return
     fi
 
-    7zzs a -t7z -m0=lzma -mx9 -mfb=64 -md=32m -ms=on "${@: -1}".7z "${@:1:$#-1}"
+    7zzs a -t7z -m0=LZMA2 -mx9 -mfb=64 -md=32m -ms=on "${@: -1}".7z "${@:1:$#-1}"
 }
 
 ## ::: danger Requirements
@@ -318,6 +318,31 @@ function 7zx() {
 
     mkdir -p "$dir_name"
     7zzs x "$file_name" -o"$dir_name"
+}
+
+## ::: danger Requirements
+## This function requires the following CLI binaries:
+## - `7zzs` or `7zz` - https://www.7-zip.org/download.html
+## - `zstd` - https://facebook.github.io/zstd/
+## :::
+## `compress` archives a folder or files using ZStandard compression algorithm and encrypts it using 7Zip (optional). If it can't find `zstd`, it will use `gzip` instead. If it can't find `7zzs` or `7zz`, it will not encrypt the archive and `-p` is ignored. 
+## Usage: `compress <folder> [-o <output_name> -p <password>]` or `compress <file1> <file2> <...> <fileN> -o <output_name> [-p <password>]`
+function compress {
+    cmd = "tar"
+    if ! command -v zstd &> /dev/null; then
+        echoerr "Error: zstd not found. Please install zstd from https://facebook.github.io/zstd/"
+        echoerr "Using gzip instead."
+    fi
+
+    cmd = "zstd"
+    
+    if ! command -v 7zzs &> /dev/null; then
+        echoerr "Error: 7zzs not found. Please install 7zzs from https://www.7-zip.org/download.html"
+        echoerr "Using 7zz instead."
+    fi
+
+    
+    
 }
 
 ## Converts all file names in the current directory to some UUID names leveing the extension intact
