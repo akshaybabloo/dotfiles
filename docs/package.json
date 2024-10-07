@@ -4,7 +4,7 @@
   "type": "module",
   "devDependencies": {
     "bun-types": "^1.1.29",
-    "vitepress": "^1.3.4"
+    "vitepress": "^1.4.0"
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
