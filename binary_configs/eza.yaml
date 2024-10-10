@@ -1,0 +1,12 @@
+# yaml-language-server: $schema=./schema.json
+name: "Eza"
+description: "A modern alternative to ls"
+url: "https://github.com/eza-community/eza"
+installLocation: "~/bin"
+files:
+  - fileName: "eza"
+    execute: true
+    exists: false
+    versionCommand:
+      args: "--version"
+      regexVersion: "\\d+\\.\\d+\\.\\d+"
