@@ -1,0 +1,131 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/akshaybabloo/dotfile-updater/models/binaries",
+  "$ref": "#/$defs/Binaries",
+  "$defs": {
+    "Binaries": {
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "files": {
+          "items": {
+            "$ref": "#/$defs/File"
+          },
+          "type": "array"
+        },
+        "sha": {
+          "$ref": "#/$defs/ShaInfo"
+        },
+        "updatesAvailable": {
+          "type": "boolean"
+        },
+        "description": {
+          "type": "string"
+        },
+        "provider": {
+          "type": "integer"
+        },
+        "osInfo": {
+          "$ref": "#/$defs/OSArch"
+        },
+        "downloadUrl": {
+          "type": "string"
+        },
+        "downloadFileName": {
+          "type": "string"
+        },
+        "downloadFolder": {
+          "type": "string"
+        },
+        "downloadPath": {
+          "type": "string"
+        },
+        "installLocation": {
+          "type": "string"
+        },
+        "currentVersion": {
+          "type": "string"
+        },
+        "newVersion": {
+          "type": "string"
+        },
+        "shell": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "name",
+        "url",
+        "files",
+        "installLocation"
+      ]
+    },
+    "File": {
+      "properties": {
+        "execute": {
+          "type": "boolean"
+        },
+        "fileName": {
+          "type": "string"
+        },
+        "exists": {
+          "type": "boolean"
+        },
+        "versionCommand": {
+          "$ref": "#/$defs/VersionCommand"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "execute",
+        "fileName"
+      ]
+    },
+    "OSArch": {
+      "properties": {
+        "os": {
+          "type": "string"
+        },
+        "arch": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "ShaInfo": {
+      "properties": {
+        "url": {
+          "type": "string"
+        },
+        "shaType": {
+          "type": "string"
+        },
+        "checksum": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "VersionCommand": {
+      "properties": {
+        "args": {
+          "type": "string"
+        },
+        "regexVersion": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    }
+  }
+}
