@@ -3,11 +3,12 @@ package utils
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"github.com/akshaybabloo/dotfile-updater/models"
-	"github.com/goccy/go-yaml"
 	"io"
 	"os"
 	"strings"
+
+	"github.com/akshaybabloo/dotfile-updater/models"
+	"github.com/goccy/go-yaml"
 )
 
 // ParseYaml parses the yaml string and returns the models.Binaries

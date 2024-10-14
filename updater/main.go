@@ -2,8 +2,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/akshaybabloo/dotfile-updater/cmd"
 	"os"
+
+	"github.com/akshaybabloo/dotfile-updater/cmd"
 )
 
 var (

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+
 	"github.com/akshaybabloo/dotfile-updater/cmd/download"
 	"github.com/akshaybabloo/dotfile-updater/cmd/schema"
 	"github.com/spf13/cobra"

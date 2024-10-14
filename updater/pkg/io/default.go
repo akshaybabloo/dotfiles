@@ -2,11 +2,12 @@ package io
 
 import (
 	"fmt"
-	"github.com/akshaybabloo/dotfile-updater/models"
-	"github.com/akshaybabloo/dotfile-updater/pkg/utils"
 	"iter"
 	"os"
 	"path/filepath"
+
+	"github.com/akshaybabloo/dotfile-updater/models"
+	"github.com/akshaybabloo/dotfile-updater/pkg/utils"
 )
 
 // ReadYamlFiles reads all the yaml files in the provided path
