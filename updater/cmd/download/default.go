@@ -3,6 +3,10 @@ package download
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"time"
+
 	"github.com/MakeNowJust/heredoc"
 	"github.com/akshaybabloo/dotfile-updater/models"
 	"github.com/akshaybabloo/dotfile-updater/pkg/io"
@@ -11,9 +15,6 @@ import (
 	"github.com/fatih/color"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/spf13/cobra"
-	"os"
-	"path/filepath"
-	"time"
 )
 
 var isCheckOnly bool
@@ -42,6 +43,7 @@ func NewDownloadCmd() *cobra.Command {
 			s := spinner.New(spinner.CharSets[11], 100*time.Millisecond)
 			s.Suffix = color.GreenString(" Checking for updates...")
 			s.Start()
+
 			stat, err := os.Stat(args[0])
 			if err != nil {
 				return err
@@ -49,19 +51,23 @@ func NewDownloadCmd() *cobra.Command {
 			if !stat.IsDir() {
 				return errors.New("provided path is not a directory")
 			}
+
 			data, err := io.ReadYamlFiles(filepath.FromSlash(args[0]))
 			if err != nil {
 				return err
 			}
+
 			var bins []models.Binaries
 			for binaries, err := range data {
 				if err != nil {
 					return err
 				}
+
 				updates, err := net.CheckUpdates(binaries)
 				if err != nil {
 					return err
 				}
+
 				bins = append(bins, updates)
 			}
 
@@ -77,9 +83,8 @@ func NewDownloadCmd() *cobra.Command {
 				fmt.Println(color.GreenString("No updates available"))
 				return nil
 			}
-
+			s.FinalMSG = color.GreenString("Updates available\n")
 			s.Stop()
-			fmt.Println(color.GreenString("Updates available\n"))
 
 			t := table.NewWriter()
 			t.SetOutputMirror(os.Stdout)
@@ -106,10 +111,18 @@ func NewDownloadCmd() *cobra.Command {
 				}
 			}
 
-			err = net.DownloadAndMoveFiles(binUpdates)
-			if err != nil {
-				return err
+			s = spinner.New(spinner.CharSets[11], 100*time.Millisecond)
+			s.Suffix = color.GreenString(" Installing updates...")
+			s.Start()
+
+			for _, update := range binUpdates {
+				err = net.DownloadAndMoveFiles(update)
+				if err != nil {
+					return err
+				}
 			}
+			s.FinalMSG = color.GreenString("Updates installed\n")
+			s.Stop()
 
 			return nil
 		},

@@ -476,6 +476,7 @@ function dotc() {
 ## `dotu` updates the dotfiles to the latest main branch
 ## Usage: `dotu`
 function dotu() {
+    current_dir=$(pwd)
     cd $(_whereami)
 
     git fetch -q origin main &
@@ -496,8 +497,17 @@ function dotu() {
     # Pull the latest changes quietly
     git pull -q origin main &
     pull_pid=$!
-    _loading $pull_pid "Updates found. Updateing now..."
+    _loading $pull_pid "Updates found. Updating now..."
     echo "Checkout the diff at https://github.com/akshaybabloo/dotfiles/compare/$current_hash...$remote_hash"
+
+    # Update updater and download binaries if any
+    cd $(_whereami)/updater
+    go build -o dotfiles-updater main.go
+    mv dotfiles-updater $HOME/bin/dotfiles-updater
+    cd $(_whereami)
+    dotfiles-updater download $(_whereami)/binary_configs
+
+    cd $current_dir
     reload
 }
 
