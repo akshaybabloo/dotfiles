@@ -10,6 +10,16 @@ current_dir=$(pwd)
 printf "Checking software dependencies...\n\n"
 source $current_dir/install.sh
 
+printf "Install updater?\n"
+select yn in "Yes" "No"; do
+    case $yn in
+        Yes ) source $current_dir/updater.sh; break;;
+        No ) break;;
+    esac
+done
+
+printf "\n"
+
 if ! grep -q ".main" ~/.bashrc; then
     printf "\n# Gollahalli Dotfiles\n. ${current_dir}/.main\n" >> ~/.bashrc
     source ~/.bashrc

@@ -61,11 +61,13 @@ func findProvider(b models.Binaries) models.Binaries {
 func checkForNewVersion(b models.Binaries) (models.Binaries, error) {
 	if b.Provider == GitHub {
 		info := utils.ExpandGitHubURL(b.URL)
+
 		c := github.NewClient(nil)
 		releases, _, err := c.Repositories.GetLatestRelease(context.Background(), info.Owner, info.Repo)
 		if err != nil {
 			return models.Binaries{}, nil
 		}
+
 		for _, asset := range releases.Assets {
 			osArch := utils.FigureOutOSAndArch(asset.GetName())
 			if runtime.GOOS == osArch.OS && runtime.GOARCH == osArch.Arch {
@@ -76,7 +78,6 @@ func checkForNewVersion(b models.Binaries) (models.Binaries, error) {
 				break
 			}
 		}
-
 	}
 	if b.DownloadURL == "" {
 		return models.Binaries{}, errors.New("no binary found for the current OS and Arch")
@@ -93,21 +94,39 @@ func checkForNewVersion(b models.Binaries) (models.Binaries, error) {
 func CheckUpdates(b models.Binaries) (models.Binaries, error) {
 	_version, err := getCurrentVersion(b)
 	if err != nil {
-		return models.Binaries{}, nil
+		// If not found, install the binary
+		if errors.Is(err, exec.ErrNotFound) {
+			pr := findProvider(b)
+			checkV, err := checkForNewVersion(pr)
+			if err != nil {
+				return models.Binaries{}, err
+			}
+
+			b = checkV
+			b.CurrentVersion = "Not Found"
+			b.UpdatesAvailable = true
+
+			return b, nil
+		}
+		return models.Binaries{}, err
 	}
+
 	pr := findProvider(_version)
 	checkV, err := checkForNewVersion(pr)
 	if err != nil {
-		return models.Binaries{}, nil
+		return models.Binaries{}, err
 	}
+
 	currentVersion, err := version.NewVersion(checkV.CurrentVersion)
 	if err != nil {
-		return models.Binaries{}, errors.New("error parsing the current version")
+		return models.Binaries{}, errors.New("error parsing the current version " + err.Error())
 	}
+
 	newVersion, err := version.NewVersion(checkV.NewVersion)
 	if err != nil {
-		return models.Binaries{}, errors.New("error parsing the new version")
+		return models.Binaries{}, errors.New("error parsing the new version " + err.Error())
 	}
+
 	if currentVersion.LessThan(newVersion) {
 		checkV.UpdatesAvailable = true
 	} else {
@@ -187,7 +206,7 @@ func moveFiles(b *models.Binaries) error {
 		b.InstallLocation = filepath.Join(homeDir, b.InstallLocation[2:])
 	}
 
-	// Ensure the install location exists
+	// Ensure the installation location exists
 	err := os.MkdirAll(b.InstallLocation, 0755)
 	if err != nil {
 		return fmt.Errorf("failed to create install directory: %w", err)
@@ -232,7 +251,6 @@ func moveFiles(b *models.Binaries) error {
 			if err != nil {
 				return fmt.Errorf("failed to set execute permissions on %s: %w", dstPath, err)
 			}
-
 		}
 
 		// Verify permissions
@@ -320,28 +338,31 @@ func verifyNewBin(b models.Binaries) error {
 // 3. Uncompress the file
 // 4. Move the files to the install location
 // 5. Verify the new binary
-func DownloadAndMoveFiles(b []models.Binaries) error {
-	for _, bin := range b {
-		dl, err := downloadFile(bin)
-		if err != nil {
-			return err
-		}
-		file, err := verifyFile(dl)
-		if err != nil && !file {
-			return err
-		}
-		err = uncompressFile(dl)
-		if err != nil {
-			return err
-		}
-		err = moveFiles(&dl)
-		if err != nil {
-			return err
-		}
-		err = verifyNewBin(dl)
-		if err != nil {
-			return err
-		}
+func DownloadAndMoveFiles(b models.Binaries) error {
+	dl, err := downloadFile(b)
+	if err != nil {
+		return err
 	}
+
+	file, err := verifyFile(dl)
+	if err != nil && !file {
+		return err
+	}
+
+	err = uncompressFile(dl)
+	if err != nil {
+		return err
+	}
+
+	err = moveFiles(&dl)
+	if err != nil {
+		return err
+	}
+
+	err = verifyNewBin(dl)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
