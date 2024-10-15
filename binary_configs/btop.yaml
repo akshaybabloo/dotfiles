@@ -1,10 +1,10 @@
 # yaml-language-server: $schema=./schema.json
-name: "Git Alias"
-description: "Search for git aliases"
-url: "https://github.com/akshaybabloo/git-alias"
+name: "BTop++"
+description: "A monitor of resources"
+url: "https://github.com/aristocratos/btop"
 installLocation: "~/bin"
 files:
-  - fileName: "git-alias"
+  - fileName: "bin/bat"
     execute: true
     versionCommand:
       args: "--version"
