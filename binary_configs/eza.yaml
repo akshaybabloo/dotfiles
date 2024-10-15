@@ -6,7 +6,6 @@ installLocation: "~/bin"
 files:
   - fileName: "eza"
     execute: true
-    exists: false
     versionCommand:
       args: "--version"
       regexVersion: "\\d+\\.\\d+\\.\\d+"

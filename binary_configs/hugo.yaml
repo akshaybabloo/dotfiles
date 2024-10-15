@@ -1,11 +1,11 @@
 # yaml-language-server: $schema=./schema.json
-name: "Git Alias"
-description: "Search for git aliases"
-url: "https://github.com/akshaybabloo/git-alias"
+name: "Hugo"
+description: "A fast and flexible static site generator"
+url: "https://github.com/gohugoio/hugo"
 installLocation: "~/bin"
 files:
-  - fileName: "git-alias"
+  - fileName: "hugo"
     execute: true
     versionCommand:
-      args: "--version"
+      args: "version"
       regexVersion: "\\d+\\.\\d+\\.\\d+"

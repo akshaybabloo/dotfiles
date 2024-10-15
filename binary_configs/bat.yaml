@@ -1,10 +1,10 @@
 # yaml-language-server: $schema=./schema.json
-name: "Git Alias"
-description: "Search for git aliases"
-url: "https://github.com/akshaybabloo/git-alias"
+name: "Bat"
+description: "A cat(1) clone with wings"
+url: "https://github.com/sharkdp/bat"
 installLocation: "~/bin"
 files:
-  - fileName: "git-alias"
+  - fileName: "bat"
     execute: true
     versionCommand:
       args: "--version"

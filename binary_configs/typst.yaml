@@ -1,10 +1,10 @@
 # yaml-language-server: $schema=./schema.json
-name: "Git Alias"
-description: "Search for git aliases"
-url: "https://github.com/akshaybabloo/git-alias"
+name: "Typst"
+description: "A new markup-based typesetting system that is powerful and easy to learn."
+url: "https://github.com/typst/typst"
 installLocation: "~/bin"
 files:
-  - fileName: "git-alias"
+  - fileName: "typst"
     execute: true
     versionCommand:
       args: "--version"
