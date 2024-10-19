@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=./schema.json
+# yaml-language-server: $schema=https://raw.githubusercontent.com/akshaybabloo/binstall/refs/heads/main/schema.json
 name: "FS RS"
 description: "File system information CLI"
 url: "https://github.com/akshaybabloo/fs_rs"
@@ -6,6 +6,7 @@ installLocation: "~/bin"
 files:
   - fileName: "fs_rs"
     execute: true
+    copyIt: true
     versionCommand:
       args: "--version"
       regexVersion: "\\d+\\.\\d+\\.\\d+"

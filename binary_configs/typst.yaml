@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=./schema.json
+# yaml-language-server: $schema=https://raw.githubusercontent.com/akshaybabloo/binstall/refs/heads/main/schema.json
 name: "Typst"
 description: "A new markup-based typesetting system that is powerful and easy to learn."
 url: "https://github.com/typst/typst"
@@ -6,6 +6,7 @@ installLocation: "~/bin"
 files:
   - fileName: "typst"
     execute: true
+    copyIt: true
     versionCommand:
       args: "--version"
       regexVersion: "\\d+\\.\\d+\\.\\d+"

@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=./schema.json
+# yaml-language-server: $schema=https://raw.githubusercontent.com/akshaybabloo/binstall/refs/heads/main/schema.json
 name: "Caddy"
 description: "Fast and extensible multi-platform HTTP/1-2-3 web server with automatic HTTPS"
 url: "https://github.com/caddyserver/caddy"
@@ -6,6 +6,7 @@ installLocation: "~/bin"
 files:
   - fileName: "caddy"
     execute: true
+    copyIt: true
     versionCommand:
       args: "--version"
       regexVersion: "\\d+\\.\\d+\\.\\d+"

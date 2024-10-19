@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=./schema.json
+# yaml-language-server: $schema=https://raw.githubusercontent.com/akshaybabloo/binstall/refs/heads/main/schema.json
 name: "Git Alias"
 description: "Search for git aliases"
 url: "https://github.com/akshaybabloo/git-alias"
@@ -6,6 +6,7 @@ installLocation: "~/bin"
 files:
   - fileName: "git-alias"
     execute: true
+    copyIt: true
     versionCommand:
       args: "--version"
       regexVersion: "\\d+\\.\\d+\\.\\d+"

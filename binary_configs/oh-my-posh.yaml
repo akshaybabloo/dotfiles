@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=./schema.json
+# yaml-language-server: $schema=https://raw.githubusercontent.com/akshaybabloo/binstall/refs/heads/main/schema.json
 name: "Oh My Posh"
 description: "A prompt theme engine for any shell"
 url: "https://github.com/JanDeDobbeleer/oh-my-posh"
@@ -6,6 +6,7 @@ installLocation: "~/bin"
 files:
   - fileName: "oh-my-posh"
     execute: true
+    copyIt: true
     versionCommand:
       args: "--version"
       regexVersion: "\\d+\\.\\d+\\.\\d+"

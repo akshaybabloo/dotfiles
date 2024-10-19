@@ -1,10 +1,11 @@
-# yaml-language-server: $schema=./schema.json
+# yaml-language-server: $schema=https://raw.githubusercontent.com/akshaybabloo/binstall/refs/heads/main/schema.json
 name: "Bat"
 description: "A cat(1) clone with wings"
 url: "https://github.com/sharkdp/bat"
 installLocation: "~/bin"
 files:
   - fileName: "bat"
+    copyIt: false
     execute: true
     versionCommand:
       args: "--version"
