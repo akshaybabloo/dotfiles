@@ -6,6 +6,14 @@ installLocation: "~/bin"
 files:
   - fileName: "oh-my-posh"
     execute: true
+    executeWhenCopying: false
+    copyIt: false
+    versionCommand:
+      args: "--version"
+      regexVersion: "\\d+\\.\\d+\\.\\d+"
+  - fileName: "posh-linux-amd64"
+    renameTo: "oh-my-posh"
+    execute: false
     copyIt: true
     versionCommand:
       args: "--version"
