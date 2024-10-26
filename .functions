@@ -20,23 +20,49 @@ function _whereami() {
 function _loading() {
     local pid=$1
     local message=$2
+    local sp="/-\|"  # Spinner characters
+    
+    # Save cursor state and hide it
+    tput civis
 
+    # Handle completion message
     if [[ $1 == "--done" ]]; then
         echo -e "\n$2"
-        return
+        tput cnorm  # Restore cursor
+        return 0
     fi
 
-    # Start the Spinner:
-    i=1
-    sp="/-\|"
+    # Validate PID
+    if ! [[ "$pid" =~ ^[0-9]+$ ]] || [ ! -d "/proc/$pid" ]; then
+        echo "Error: Invalid process ID"
+        tput cnorm  # Restore cursor
+        return 1
+    fi
+
+    # Start the Spinner
     echo -n "$message "
-    while [ -d /proc/"$pid" ]; do
-        printf "\b${sp:i++%${#sp}:1}"
-        sleep .1
+    while [ -d "/proc/$pid" ]; do
+        for i in $(seq 0 $((${#sp} - 1))); do
+            printf "\b${sp:$i:1}"
+            sleep 0.1
+            # Check if process ended
+            [ ! -d "/proc/$pid" ] && break 2
+        done
     done
 
-    # Clean up the output:
-    echo -e "\b\b Done!"
+    # Clean up the output
+    wait "$pid"
+    local exit_status=$?
+    
+    if [ $exit_status -eq 0 ]; then
+        echo -e "\b\b Done!"
+    else
+        echo -e "\b\b Failed!"
+    fi
+    
+    # Restore cursor
+    tput cnorm
+    return $exit_status
 }
 
 function _redText() { printf "\e[1m\e[31m%s\e[0m\n" "$1"; }
@@ -477,7 +503,22 @@ function dotc() {
 ## Usage: `dotu`
 function dotu() {
     current_dir=$(pwd)
-    cd $(_whereami)
+    repo_dir=$(_whereami)
+    
+    # Check if repo directory exists
+    if [ ! -d "$repo_dir" ]; then
+        echo "Error: Repository directory not found"
+        return 1
+    fi
+    
+    cd "$repo_dir" || return 1
+
+    # Check if we're in a git repository
+    if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        echo "Error: Not a git repository"
+        cd "$current_dir"
+        return 1
+    fi
 
     git fetch -q origin main &
     fetch_pid=$!
@@ -486,28 +527,40 @@ function dotu() {
     # Get current hash
     current_hash=$(git rev-parse HEAD)
     # Get remote hash
-    remote_hash=$(git rev-parse origin/main)
+    remote_hash=$(git rev-parse origin/main 2>/dev/null)
+
+    # Check if remote hash retrieval failed
+    if [ -z "$remote_hash" ]; then
+        _loading --done "Error: Could not fetch remote hash"
+        cd "$current_dir"
+        return 1
+    fi
 
     # Check if the hash is the same as the remote
     if [[ $remote_hash == $current_hash ]]; then
         _loading --done "Already up to date."
-        return
+        cd "$current_dir"
+    else
+        # Pull the latest changes quietly
+        if git pull -q origin main &
+        pull_pid=$!; then
+            _loading $pull_pid "Updates found. Updating now..."
+            echo "Checkout the diff at https://github.com/akshaybabloo/dotfiles/compare/$current_hash...$remote_hash"
+        else
+            _loading --done "Error: Failed to pull updates"
+            cd "$current_dir"
+            return 1
+        fi
     fi
 
-    # Pull the latest changes quietly
-    git pull -q origin main &
-    pull_pid=$!
-    _loading $pull_pid "Updates found. Updating now..."
-    echo "Checkout the diff at https://github.com/akshaybabloo/dotfiles/compare/$current_hash...$remote_hash"
+    # Check if updater script exists before running
+    if [ -f "$repo_dir/updater.sh" ]; then
+        "$repo_dir/updater.sh"
+    else
+        echo "Warning: updater.sh not found"
+    fi
 
-    # Update updater and download binaries if any
-    # cd $(_whereami)/updater
-    # go build -o dotfiles-updater main.go
-    # mv dotfiles-updater $HOME/bin/dotfiles-updater
-    # cd $(_whereami)
-    # dotfiles-updater download $(_whereami)/binary_configs
-
-    cd $current_dir
+    cd "$current_dir"
     reload
 }
 
