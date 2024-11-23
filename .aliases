@@ -42,6 +42,11 @@ alias rmd="rm -rf"
 ## Extract/compress archives using 7-zip - use: `7z <file>`
 alias 7z="7zzs"
 
+## ::: danger Requirements
+## This alias requires `flatpak`, see https://flatpak.org/setup/ and `Papers`, see https://flathub.org/apps/org.gnome.Papers.
+## :::
+## Open Papers
+alias papers="flatpak run org.gnome.Papers"
 
 ## h2: Shortcuts for Executables
 
