@@ -100,6 +100,12 @@ alias reload="source ~/.bashrc"
 alias path='echo -e ${PATH//:/\\n}'
 
 ## ::: danger Requirements
+## This alisa requires `adb`, see https://developer.android.com/studio.
+## :::
+## Logcat with colors
+alias logcat='adb logcat -b all -v color "*:V" | tee ~/logcat_archive/$(date +"%Y-%m-%d_%H-%M-%S")'
+
+## ::: danger Requirements
 ## This alias requires `httpie`, see https://httpie.io.
 ## :::
 ## Make httpie output more readable
