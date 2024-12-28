@@ -106,6 +106,12 @@ alias path='echo -e ${PATH//:/\\n}'
 alias logcat='adb logcat -b all -v color "*:V" | tee ~/logcat_archive/$(date +"%Y-%m-%d_%H-%M-%S")'
 
 ## ::: danger Requirements
+## This alisa requires `fzf`, see https://github.com/junegunn/fzf.
+## :::
+## Fuzzy find files, preview with bat, and open with VS Code
+alias fz="fzf --preview 'bat --color=always {}' --preview-window '~3' --bind 'enter:become(code {})'"
+
+## ::: danger Requirements
 ## This alias requires `httpie`, see https://httpie.io.
 ## :::
 ## Make httpie output more readable
