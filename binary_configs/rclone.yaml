@@ -1,0 +1,12 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/akshaybabloo/binstall/refs/heads/main/schema.json
+name: "Rclone"
+description: "rsync for cloud storage"
+url: "https://github.com/rclone/rclone"
+installLocation: "~/bin"
+files:
+  - fileName: "rclone"
+    copyIt: true
+    execute: true
+    versionCommand:
+      args: "--version"
+      regexVersion: "\\d+\\.\\d+\\.\\d+"
