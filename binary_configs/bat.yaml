@@ -5,7 +5,7 @@ url: "https://github.com/sharkdp/bat"
 installLocation: "~/bin"
 files:
   - fileName: "bat"
-    copyIt: false
+    copyIt: true
     execute: true
     versionCommand:
       args: "--version"
