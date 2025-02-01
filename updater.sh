@@ -1,5 +1,22 @@
 #!/bin/bash
 
+function _whereami() {
+    if [[ $0 == -* ]]; then
+        if [[ $SHELL == */zsh ]]; then
+            script_dir=$(dirname "$ZSH_ARGZERO")
+        elif [[ $SHELL == */bash ]]; then
+            script_dir=$(dirname "${BASH_SOURCE[0]}")
+        else
+            echo "Unsupported shell: $SHELL"
+            exit 1
+        fi
+    else
+        script_dir=$(dirname "${BASH_SOURCE[0]}")
+    fi
+
+    echo $script_dir
+}
+
 current_dir=$(pwd)
 github_link="https://api.github.com/repos/akshaybabloo/binstall/releases/latest"
 
@@ -40,10 +57,10 @@ function download_and_install_binstall() {
 }
 
 function check_for_new_updater() {
-    version=$(binstall --version)
+    version=$(binstall --version | cut -d ' ' -f 2)
     latest_version=$(curl -s $github_link | jq -r ".tag_name")
 
-    if [ "$version" != "$latest_version" ]; then
+    if [ "$(printf '%s\n' "$version" "$latest_version" | sort -V | head -n1)" != "$latest_version" ]; then
         printf "New version of updater is available. Updating now...\n"
         download_and_install_binstall
     fi
@@ -68,4 +85,4 @@ check_for_new_updater
 printf "Updater installed. Checking for updates...\n"
 
 # Check for updates
-binstall download $current_dir/binary_configs
+binstall download $(_whereami)/binary_configs
