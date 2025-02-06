@@ -267,12 +267,62 @@ function dlc() {
 	mv "$temp_file" "$file"
 }
 
+## Converts all file names in the current directory to some UUID names leaving the extension intact
+## Usage: `uuidf`
+function uuidf() {
+    # Loop over all files in the current directory
+    for file in *; do
+        # Skip if it's a directory
+        if [[ -d "$file" ]]; then
+            continue
+        fi
+
+        # Extract the file extension
+        extension="${file##*.}"
+
+        # Generate a GUID
+        guid=$(uuidgen)
+
+        # Rename the file, keeping the original extension
+        mv "$file" "${guid}.${extension}"
+    done
+
+}
+
+## `snapc` cleans up old snap versions
+## Usage: `sudo snapc`
+function snapc() {
+    # Check if snap is installed
+    if ! command -v snap &> /dev/null; then
+        echoerr "Error: snap not found. Please install snap from https://snapcraft.io/docs/installing-snapd"
+        return
+    fi
+
+    # Check if sudo is used
+    if [[ $EUID -ne 0 ]]; then
+        echoerr "Error: Please run as root"
+        return
+    fi
+
+    # Taken from - https://www.debugpoint.com/clean-up-snap/
+    # Remove old revisions of snaps
+    # CLOSE ALL SNAPS BEFORE RUNNING THIS
+    set -eu
+
+    snap list --all | awk '/disabled/{print $1, $3}' |
+        while read snapname revision; do
+            snap remove "$snapname" --revision="$revision"
+        done
+}
+
+## h2: File and Directory Compression Functions
+
 ## ::: danger Requirements
 ## This function requires `7zzs`, see https://www.7-zip.org/download.html
 ## :::
-## `7za` creates a 7Zip archive using the LZMA algorithm
-## Usage: `7za <directory>` or `7za <filename1> <filename2> <...> <filenameN> <archive_name>`
-function 7za() {
+## `7zc` creates a 7Zip archive using the LZMA algorithm
+## Usage: `7zc <directory>` or `7zc <filename1> <filename2> <...> <filenameN> <archive_name>`
+function 7zc() {
     if ! command -v 7zzs &> /dev/null; then
         echoerr "Error: 7zzs not found. Please install 7zzs from https://www.7-zip.org/download.html"
         return
@@ -346,111 +396,6 @@ function 7zx() {
     7zzs x "$file_name" -o"$dir_name"
 }
 
-## Converts all file names in the current directory to some UUID names leveing the extension intact
-## Usage: `uuidf`
-function uuidf() {
-    # Loop over all files in the current directory
-    for file in *; do
-        # Skip if it's a directory
-        if [[ -d "$file" ]]; then
-            continue
-        fi
-
-        # Extract the file extension
-        extension="${file##*.}"
-
-        # Generate a GUID
-        guid=$(uuidgen)
-
-        # Rename the file, keeping the original extension
-        mv "$file" "${guid}.${extension}"
-    done
-
-}
-
-## `snapc` cleans up old snap versions
-## Usage: `sudo snapc`
-function snapc() {
-    # Check if snap is installed
-    if ! command -v snap &> /dev/null; then
-        echoerr "Error: snap not found. Please install snap from https://snapcraft.io/docs/installing-snapd"
-        return
-    fi
-
-    # Check if sudo is used
-    if [[ $EUID -ne 0 ]]; then
-        echoerr "Error: Please run as root"
-        return
-    fi
-
-    # Taken from - https://www.debugpoint.com/clean-up-snap/
-    # Remove old revisions of snaps
-    # CLOSE ALL SNAPS BEFORE RUNNING THIS
-    set -eu
-
-    snap list --all | awk '/disabled/{print $1, $3}' |
-        while read snapname revision; do
-            snap remove "$snapname" --revision="$revision"
-        done
-}
-
-## h2: Git Related Functions
-
-## `gclone` clones a git repository and cd's into it
-## Usage: `gclone <git_url>`
-function gclone() {
-    # Check if git is installed
-    if ! command -v git &> /dev/null; then
-        echoerr "Error: git not found. Please install git from https://git-scm.com/downloads"
-        return
-    fi
-
-    # Check if the first argument is not empty
-    if [[ -z $1 ]]; then
-        echoerr "Error: No arguments provided."
-        return
-    fi
-
-    # Clone the repository
-    git clone "$1" && cd "$(basename "$1" .git)"
-}
-
-## `gsubd` removed the current Git submodule and its entry in `.gitmodules`
-## Usage: `gsubd <submodule_path>`
-function gsubd() {
-    # Check if git is installed
-    if ! command -v git &> /dev/null; then
-        echoerr "Error: git not found. Please install git from https://git-scm.com/downloads"
-        return
-    fi
-
-    local SUBMODULE_PATH="$1"
-
-    # Check if the first argument is not empty
-    if [[ -z $SUBMODULE_PATH ]]; then
-        echoerr "Error: No path provided."
-        return
-    fi
-
-    # Check if the submodule exists
-    if [[ ! -e $SUBMODULE_PATH ]]; then
-        echoerr "Error: $SUBMODULE_PATH not found."
-        return
-    fi
-
-    # Remove the submodule entry from .git/config
-    git submodule deinit -f "$SUBMODULE_PATH"
-
-    # Remove the submodule from the index and working tree
-    git rm -f $SUBMODULE_PATH
-
-    # Clean up the .gitmodules file
-    git config -f .gitmodules --remove-section submodule.$SUBMODULE_PATH 2> /dev/null
-
-    # Remove the leftover submodule directory in .git/modules
-    rm -rf .git/modules/$SUBMODULE_PATH
-}
-
 ## ::: danger Requirements
 ## This function requires `zstd`. Install it from `sudo apt install zstd`.
 ## :::
@@ -511,6 +456,63 @@ function zstdx() {
 
     # Extract the file
     tar --use-compress-program="zstd -d" -xf "$file"
+}
+
+## h2: Git Related Functions
+
+## `gclone` clones a git repository and cd's into it
+## Usage: `gclone <git_url>`
+function gclone() {
+    # Check if git is installed
+    if ! command -v git &> /dev/null; then
+        echoerr "Error: git not found. Please install git from https://git-scm.com/downloads"
+        return
+    fi
+
+    # Check if the first argument is not empty
+    if [[ -z $1 ]]; then
+        echoerr "Error: No arguments provided."
+        return
+    fi
+
+    # Clone the repository
+    git clone "$1" && cd "$(basename "$1" .git)"
+}
+
+## `gsubd` removed the current Git submodule and its entry in `.gitmodules`
+## Usage: `gsubd <submodule_path>`
+function gsubd() {
+    # Check if git is installed
+    if ! command -v git &> /dev/null; then
+        echoerr "Error: git not found. Please install git from https://git-scm.com/downloads"
+        return
+    fi
+
+    local SUBMODULE_PATH="$1"
+
+    # Check if the first argument is not empty
+    if [[ -z $SUBMODULE_PATH ]]; then
+        echoerr "Error: No path provided."
+        return
+    fi
+
+    # Check if the submodule exists
+    if [[ ! -e $SUBMODULE_PATH ]]; then
+        echoerr "Error: $SUBMODULE_PATH not found."
+        return
+    fi
+
+    # Remove the submodule entry from .git/config
+    git submodule deinit -f "$SUBMODULE_PATH"
+
+    # Remove the submodule from the index and working tree
+    git rm -f $SUBMODULE_PATH
+
+    # Clean up the .gitmodules file
+    git config -f .gitmodules --remove-section submodule.$SUBMODULE_PATH 2> /dev/null
+
+    # Remove the leftover submodule directory in .git/modules
+    rm -rf .git/modules/$SUBMODULE_PATH
 }
 
 # =========================================================================================================
