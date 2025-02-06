@@ -451,6 +451,68 @@ function gsubd() {
     rm -rf .git/modules/$SUBMODULE_PATH
 }
 
+## ::: danger Requirements
+## This function requires `zstd`. Install it from `sudo apt install zstd`.
+## :::
+## `zstdc` compresses a file or directory using zstd with tar
+## Usage: `zstdc <file or directory>`
+function zstdc() {
+    local file_folder=$1
+    local file_folder_name=$(basename "$file_folder")
+
+    # Check if the first argument is not empty
+    if [[ -z $file_folder ]]; then
+        echoerr "Error: No arguments provided."
+        return
+    fi
+
+    # Check if zstd is installed
+    if ! command -v zstd &> /dev/null; then
+        echoerr "Error: zstd not found."
+        return
+    fi
+
+    # Check if the file or directory exists
+    if [[ ! -e $file_folder ]]; then
+        echoerr "Error: $file_folder not found."
+        return
+    fi
+
+    # Compress the file or directory
+    tar --use-compress-program="zstd -T0 -19" -cf "${file_folder_name}.tar.zst" "$file_folder"
+}
+
+## ::: danger Requirements
+## This function requires `zstd`. Install it from `sudo apt install zstd`.
+## :::
+## `zstdx` extracts a zstd compressed tar file
+## Usage: `zstdx <file.tar.zst>`
+function zstdx() {
+    local file=$1
+    local file_name=$(basename "$file" .tar.zst)
+
+    # Check if the first argument is not empty
+    if [[ -z $file ]]; then
+        echoerr "Error: No arguments provided."
+        return
+    fi
+
+    # Check if zstd is installed
+    if ! command -v zstd &> /dev/null; then
+        echoerr "Error: zstd not found."
+        return
+    fi
+
+    # Check if the file exists
+    if [[ ! -e $file ]]; then
+        echoerr "Error: $file not found."
+        return
+    fi
+
+    # Extract the file
+    tar --use-compress-program="zstd -d" -xf "$file"
+}
+
 # =========================================================================================================
 # ============================================== Dotfiles =================================================
 # =========================================================================================================
