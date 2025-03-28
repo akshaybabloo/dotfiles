@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/akshaybabloo/binstall/refs/heads/main/schema.json
+name: "uv"
+description: "An extremely fast Python package and project manager, written in Rust."
+url: "https://github.com/astral-sh/uv/"
+installLocation: "~/bin"
+files:
+  - fileName: "uv"
+    copyIt: true
+    execute: true
+    versionCommand:
+      args: "--version"
+      regexVersion: "\\d+\\.\\d+\\.\\d+"
+  - fileName: "uvx"
+    copyIt: true
+    execute: false
