@@ -24,3 +24,8 @@ if ! grep -q ".main" ~/.bashrc; then
     printf "\n# Gollahalli Dotfiles\n. ${current_dir}/.main\n" >> ~/.bashrc
     source ~/.bashrc
 fi
+
+echo "Dotfiles installed successfully!"
+printf "\n\n"
+echo "If you are using ~/.bash_profile, please add the following lines to it:"
+printf "\nif [ -f ~/.bashrc ]; then\n    . ~/.bashrc\nfi\n"
