@@ -5,7 +5,3 @@ updates:
     versioning-strategy: increase
     schedule:
       interval: "weekly"
-  - package-ecosystem: "gomod"
-    directory: "/updater"
-    schedule:
-      interval: "weekly"
