@@ -3,7 +3,7 @@
   "module": "index.ts",
   "type": "module",
   "devDependencies": {
-    "bun-types": "^1.2.9",
+    "bun-types": "^1.2.10",
     "vitepress": "^1.6.3"
   },
   "peerDependencies": {
@@ -16,6 +16,6 @@
   },
   "dependencies": {
     "typescript": "^5.8.3",
-    "vite": "^6.2.6"
+    "vite": "^6.3.3"
   }
 }
