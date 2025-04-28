@@ -20,6 +20,10 @@ done
 
 printf "\n"
 
+# Installing basic dependencies
+printf "Installing basic dependencies...\n"
+sudo apt install gnome-keyring curl
+
 if ! grep -q ".main" ~/.bashrc; then
     printf "\n# Gollahalli Dotfiles\n. ${current_dir}/.main\n" >> ~/.bashrc
     source ~/.bashrc

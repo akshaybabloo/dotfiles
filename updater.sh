@@ -53,6 +53,14 @@ function download_and_install_binstall() {
     # curl -sL $download_url | tar xz -C $HOME/bin --strip-components=1 binstall
     curl -sL $download_url -o temp_archive.tar.gz
     tar xzf temp_archive.tar.gz -C $HOME/bin binstall
+
+    # Check if $HOME/bin is in path
+    if ! echo "$PATH" | grep -q "$HOME/bin"; then
+        printf "Adding $HOME/bin to PATH...\n"
+        echo "export PATH=\$PATH:$HOME/bin" >> ~/.bashrc
+        source ~/.bashrc
+    fi
+
     rm temp_archive.tar.gz
 }
 
