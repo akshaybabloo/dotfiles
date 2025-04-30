@@ -65,12 +65,40 @@ function _loading() {
     return $exit_status
 }
 
+function _requireSuperuser() {
+    local file=$1
+
+    # If current user has write or read access, no need for sudo
+    if [ -w "$file" ] || [ -r "$file" ]; then
+        return 0
+    fi
+
+    # If the file is owned by root, and user is not root, require sudo
+    if [ "$(stat -c %U "$file")" == "root" ] && [ "$(id -u)" -ne 0 ]; then
+        return 1
+    fi
+
+    return 0
+}
+
 function _redText() { printf "\e[1m\e[31m%s\e[0m\n" "$1"; }
 function _greenText() { printf "\e[1m\e[32m%s\e[0m\n" "$1"; }
 function _blueText() { printf "\e[1m\e[94m%s\e[0m\n" "$1"; }
 
 
 ## h2: General Functions
+
+## `sudo_if_needed` checks if the file requires superuser permissions and returns `sudo` if needed
+## Usage: `sudo_if_needed <file>`
+function sudo_if_needed() {
+    local file=$1
+
+    if _requireSuperuser "$file"; then
+        echo ""
+    else
+        echo "sudo"
+    fi
+}
 
 ## `die` echoes the first argument as an error message and exits the shell
 ## Usage: `die "Error: Something went wrong."`
@@ -476,8 +504,11 @@ function zstdx() {
         return
     fi
 
+    local sudo_cmd
+    sudo_cmd=$(sudo_if_needed "$file")
+
     # Extract the file
-    tar --use-compress-program="zstd -d" -xf "$file"
+    $sudo_cmd tar --use-compress-program="zstd -d" -xf "$file"
 }
 
 ## h2: Git Related Functions
