@@ -1,0 +1,12 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/akshaybabloo/binstall/refs/heads/main/schema.json
+name: "GDL"
+description: "CLI and SDK to download multiple files asynchronously"
+url: "https://github.com/akshaybabloo/go-download"
+installLocation: "~/bin"
+files:
+  - fileName: "gdl"
+    copyIt: true
+    execute: true
+    versionCommand:
+      args: "--version"
+      regexVersion: "\\d+\\.\\d+\\.\\d+"
