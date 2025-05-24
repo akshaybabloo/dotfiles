@@ -365,6 +365,29 @@ function cp2() {
     rsync -arh --info=progress2 "$@"
 }
 
+## `debi` installs a .deb file using `apt install`
+## Usage: `debi <file.deb>`
+function debi() {
+    # Check if the first argument is not empty
+    if [[ -z $1 ]]; then
+        echoerr "Error: No arguments provided."
+        return
+    fi
+
+    # Check if the first argument is a valid file
+    if [[ ! -f $1 ]]; then
+        echoerr "Error: $1 is not a valid file."
+        return
+    fi
+
+    # Move file to /tmp
+    local tmp_file="/tmp/$(basename "$1")"
+    mv "$1" "$tmp_file"
+
+    # Install the deb using sudo apt install
+    sudo apt install -y "$tmp_file"
+}
+
 ## h2: File and Directory Compression Functions
 
 ## ::: danger Requirements
