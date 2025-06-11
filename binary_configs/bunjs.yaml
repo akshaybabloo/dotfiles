@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/akshaybabloo/binstall/refs/heads/main/schema.json
+name: "BunJS"
+description: "Incredibly fast JavaScript runtime, bundler, test runner, and package manager - all in one"
+url: "https://github.com/oven-sh/bun"
+installLocation: "~/bin"
+files:
+  - fileName: "bun"
+    copyIt: true
+    execute: true
+    versionCommand:
+      args: "--version"
+      regexVersion: "\\d+\\.\\d+\\.\\d+"
+  - fileName: "bunx"
+    copyIt: true
+    execute: false
+
