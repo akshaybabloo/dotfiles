@@ -66,10 +66,11 @@ function download_and_install_binstall() {
 
 function check_for_new_updater() {
     version=$(binstall --version | cut -d ' ' -f 2)
+    printf "Current binstall version: $version\n"
     latest_version=$(curl -s $github_link | jq -r ".tag_name")
 
     if [ "$(printf '%s\n' "$version" "$latest_version" | sort -V | head -n1)" != "$latest_version" ]; then
-        printf "New version of updater is available. Updating now...\n"
+        printf "New version of updater is available - $latest_version. Updating now...\n"
         download_and_install_binstall
     fi
 }
