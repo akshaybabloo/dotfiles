@@ -62,6 +62,7 @@ function download_and_install_binstall() {
     fi
 
     rm temp_archive.tar.gz
+    printf "Updater installed. Checking for updates...\n"
 }
 
 function check_for_new_updater() {
@@ -90,8 +91,6 @@ fi
 
 # Check for new updates
 check_for_new_updater
-
-printf "Updater installed. Checking for updates...\n"
 
 # Check for updates
 binstall download $(_whereami)/binary_configs

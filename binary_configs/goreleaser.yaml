@@ -1,0 +1,12 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/akshaybabloo/binstall/refs/heads/main/schema.json
+name: "goreleaser"
+description: "Release engineering, simplified"
+url: "https://github.com/goreleaser/goreleaser"
+installLocation: "~/bin"
+files:
+  - fileName: "goreleaser"
+    copyIt: true
+    execute: true
+    versionCommand:
+      args: "--version"
+      regexVersion: "GitVersion:\\s+\\d+\\.\\d+\\.\\d+"
