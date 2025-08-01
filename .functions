@@ -388,6 +388,21 @@ function debi() {
     sudo apt install -y "$tmp_file"
 }
 
+## `lsu` lists all USB devices connected to the system
+## Usage: `lsu`
+function lsu() {
+    for sysdevpath in $(find /sys/bus/usb/devices/usb*/ -name dev); do
+        (
+            syspath="${sysdevpath%/dev}"
+            devname="$(udevadm info -q name -p $syspath)"
+            [[ "$devname" == "bus/"* ]] && exit
+            eval "$(udevadm info -q property --export -p $syspath)"
+            [[ -z "$ID_SERIAL" ]] && exit
+            echo "/dev/$devname - $ID_SERIAL"
+        )
+    done
+}
+
 ## h2: File and Directory Compression Functions
 
 ## ::: danger Requirements
