@@ -4,7 +4,7 @@
     "": {
       "name": "dotfiles",
       "dependencies": {
-        "typescript": "^5.8.3",
+        "typescript": "^5.9.2",
         "vite": "^7.1.4",
       },
       "devDependencies": {
