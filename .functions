@@ -606,6 +606,20 @@ function gsubd() {
     rm -rf .git/modules/$SUBMODULE_PATH
 }
 
+## `gclean` removes all untracked files, including ignored files and directories
+## Usage: `gclean`
+function gclean() {
+    # Check if git is installed
+    if ! command -v git &> /dev/null; then
+        echoerr "Error: git not found. Please install git from https://git-scm.com/downloads"
+        return
+    fi
+
+    # Remove all untracked files, including ignored files and directories
+    # Add -n flag to do a dry run
+    git clean -Xfd
+}
+
 # =========================================================================================================
 # ============================================== Dotfiles =================================================
 # =========================================================================================================
