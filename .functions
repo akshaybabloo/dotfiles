@@ -620,6 +620,26 @@ function gclean() {
     git clean -Xfd
 }
 
+## `gcl` Generates a changelog from the commit history
+## Usage: `gcl`
+function gcl() {
+    # Check if git is installed
+    if ! command -v git &> /dev/null; then
+        echoerr "Error: git not found. Please install git from https://git-scm.com/downloads"
+        return
+    fi
+
+    # Check if in master or main branch if so, else warn the user
+    local branch
+    branch=$(git rev-parse --abbrev-ref HEAD)
+    if [[ "$branch" == "main" && "$branch" == "master" ]]; then
+        echoerr "Warning: You are in the main or master branch. The changelog will be generated from the current branch."
+    fi
+
+    # Get the change log from the main/master branch till HEAD and print it in a bullet list format
+    git log --pretty=format:'- %s' "$branch"
+}
+
 # =========================================================================================================
 # ============================================== Dotfiles =================================================
 # =========================================================================================================
