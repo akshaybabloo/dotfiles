@@ -343,28 +343,6 @@ function snapc() {
         done
 }
 
-## ::: danger Requirements
-## This function requires `rsync` - `sudo apt install rsync`.
-## :::
-## `cp2` copies file or directory to a location using `rsync`
-## Usage: `cp2 <source> <destination>`
-function cp2() {
-    # Check if rsync is installed
-    if ! command -v rsync &> /dev/null; then
-        echoerr "Error: rsync not found. Please install rsync from https://rsync.samba.org/"
-        return
-    fi
-
-    # Check if the first argument is not empty
-    if [[ -z $1 ]]; then
-        echoerr "Error: No arguments provided."
-        return
-    fi
-
-    # Copy the file or directory using rsync
-    rsync -arh --info=progress2 "$@"
-}
-
 ## `debi` installs a .deb file using `apt install`
 ## Usage: `debi <file.deb>`
 function debi() {

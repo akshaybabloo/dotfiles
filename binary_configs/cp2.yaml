@@ -1,0 +1,12 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/akshaybabloo/binstall/refs/heads/main/schema.json
+name: "cp2"
+description: "Copy files with progress"
+url: "https://github.com/akshaybabloo/cp2"
+installLocation: "~/bin"
+files:
+  - fileName: "cp2"
+    execute: true
+    copyIt: true
+    versionCommand:
+      args: "--version"
+      regexVersion: "\\d+\\.\\d+\\.\\d+"
