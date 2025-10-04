@@ -387,7 +387,7 @@ function lsu() {
 ## This function requires `7zzs`, see https://www.7-zip.org/download.html
 ## :::
 ## `7zc` creates a 7Zip archive using the LZMA2 algorithm
-## Usage: `7zc <directory>` or `7zc <filename1> <filename2> <...> <filenameN> <archive_name>`
+## Usage: `7zc <directory> [-p]` or `7zc <file1> <file2> ... <archive_name> [-p]`
 function 7zc() {
     # Check if 7zzs is installed
     if ! command -v 7zzs &> /dev/null; then
@@ -398,8 +398,33 @@ function 7zc() {
     # Check if arguments are provided
     if [[ -z $1 ]]; then
         echoerr "Error: No arguments provided."
-        echoerr "Usage: 7zc <directory> OR 7zc <file1> <file2> ... <archive_name>"
+        echoerr "Usage: 7zc <directory> [-p] OR 7zc <file1> <file2> ... <archive_name> [-p]"
         return 1
+    fi
+
+    # Check for -p flag
+    local use_password=false
+    local password=""
+    if [[ "${@: -1}" == "-p" ]]; then
+        use_password=true
+        set -- "${@:1:$#-1}"  # Remove -p from arguments
+        
+        # Prompt for password
+        read -s -p "Enter password: " password
+        echo  # New line after password input
+        
+        if [[ -z "$password" ]]; then
+            echoerr "Error: Password cannot be empty"
+            return 1
+        fi
+        
+        read -s -p "Confirm password: " password_confirm
+        echo  # New line after confirmation
+        
+        if [[ "$password" != "$password_confirm" ]]; then
+            echoerr "Error: Passwords do not match"
+            return 1
+        fi
     fi
 
     # Single directory mode: if only one argument and it's a directory
@@ -414,14 +439,18 @@ function 7zc() {
         fi
         
         echo "Compressing directory '$1' to '$archive_name'..."
-        7zzs a -t7z -m0=lzma2 -mx9 -mfb=64 -md=32m -ms=on "$archive_name" "$1"
+        if [[ "$use_password" == true ]]; then
+            7zzs a -t7z -m0=lzma2 -mx9 -mfb=64 -md=32m -ms=on -mhe=on -p"$password" "$archive_name" "$1"
+        else
+            7zzs a -t7z -m0=lzma2 -mx9 -mfb=64 -md=32m -ms=on "$archive_name" "$1"
+        fi
         return $?
     fi
 
     # Multiple files/directories mode
     if [[ $# -lt 2 ]]; then
         echoerr "Error: Please provide files/directories and an archive name."
-        echoerr "Usage: 7zc <file1> <file2> ... <archive_name>"
+        echoerr "Usage: 7zc <file1> <file2> ... <archive_name> [-p]"
         return 1
     fi
 
@@ -448,55 +477,169 @@ function 7zc() {
     
     echo "Compressing ${#items[@]} item(s) to '$archive_name'..."
     # Using maximum compression: LZMA2, ultra (-mx9), 64 word size, 32MB dictionary, solid archive
-    7zzs a -t7z -m0=lzma2 -mx9 -mfb=64 -md=32m -ms=on "$archive_name" "${items[@]}"
+    if [[ "$use_password" == true ]]; then
+        7zzs a -t7z -m0=lzma2 -mx9 -mfb=64 -md=32m -ms=on -mhe=on -p"$password" "$archive_name" "${items[@]}"
+    else
+        7zzs a -t7z -m0=lzma2 -mx9 -mfb=64 -md=32m -ms=on "$archive_name" "${items[@]}"
+    fi
     return $?
 }
 
 ## ::: danger Requirements
 ## This function requires `7zzs`, see https://www.7-zip.org/download.html
 ## :::
-## `7zx` extracts a 7Zip archive to a directory with the same name as the archive
+## `7zx` extracts a 7Zip archive to a directory with the same name as the archive.
+## Supported formats: `zip`, `rar`, `7z`, `tar`, `tar.gz`, `tgz`, `tar.bz2`, `tbz2`, `tar.xz`, `txz`, `gz`, `bz2`, `xz`
 ## Usage: `7zx <filename>.7z`
 function 7zx() {
     # Check if 7zzs is installed
     if ! command -v 7zzs &> /dev/null; then
         echoerr "Error: 7zzs not found. Please install 7zzs from https://www.7-zip.org/download.html"
-        return
+        return 1
+    fi
+
+    # Check if argument is provided
+    if [[ -z $1 ]]; then
+        echoerr "Error: No archive file specified."
+        echoerr "Usage: 7zx <archive_file>"
+        return 1
     fi
 
     local file_name="$1"
+
+    # Check if file exists
+    if [[ ! -f "$file_name" ]]; then
+        echoerr "Error: File '$file_name' not found"
+        return 1
+    fi
+
     local extension="${file_name##*.}"
     local dir_name
+    local base_name=$(basename "$file_name")
 
     # Determine the directory name based on the file extension
     case "$extension" in
         zip)
-            dir_name=$(basename "$file_name" .zip)
+            dir_name="${base_name%.zip}"
             ;;
         rar)
-            # Handle multi-part rar, like file.part1.rar
-            if [[ "$file_name" =~ \.part[0-9]+\.rar$ ]]; then
-                dir_name=$(basename "$file_name" .part1.rar)
+            # Handle multi-part rar: file.part1.rar, file.part2.rar, etc.
+            if [[ "$base_name" =~ \.part[0-9]+\.rar$ ]]; then
+                dir_name="${base_name%.part*.rar}"
             else
-                dir_name=$(basename "$file_name" .rar)
+                dir_name="${base_name%.rar}"
             fi
             ;;
         7z)
-            # Handle multi-part 7z, like file.part1.7z
-            if [[ "$file_name" =~ \.part[0-9]+\.7z$ ]]; then
-                dir_name=$(basename "$file_name" .part1.7z)
+            # Handle multi-part 7z: file.part1.7z, file.part2.7z, etc.
+            if [[ "$base_name" =~ \.part[0-9]+\.7z$ ]]; then
+                dir_name="${base_name%.part*.7z}"
             else
-                dir_name=$(basename "$file_name" .7z)
+                dir_name="${base_name%.7z}"
             fi
             ;;
+        tar)
+            dir_name="${base_name%.tar}"
+            ;;
+        gz)
+            if [[ "$base_name" =~ \.tar\.gz$ ]] || [[ "$base_name" =~ \.tgz$ ]]; then
+                dir_name="${base_name%.tar.gz}"
+                dir_name="${dir_name%.tgz}"
+            else
+                dir_name="${base_name%.gz}"
+            fi
+            ;;
+        bz2)
+            if [[ "$base_name" =~ \.tar\.bz2$ ]] || [[ "$base_name" =~ \.tbz2$ ]]; then
+                dir_name="${base_name%.tar.bz2}"
+                dir_name="${dir_name%.tbz2}"
+            else
+                dir_name="${base_name%.bz2}"
+            fi
+            ;;
+        xz)
+            if [[ "$base_name" =~ \.tar\.xz$ ]] || [[ "$base_name" =~ \.txz$ ]]; then
+                dir_name="${base_name%.tar.xz}"
+                dir_name="${dir_name%.txz}"
+            else
+                dir_name="${base_name%.xz}"
+            fi
+            ;;
+        tgz)
+            dir_name="${base_name%.tgz}"
+            ;;
+        tbz2)
+            dir_name="${base_name%.tbz2}"
+            ;;
+        txz)
+            dir_name="${base_name%.txz}"
+            ;;
         *)
-            echo "Unsupported file extension: $extension"
-            return
+            echoerr "Error: Unsupported file extension: $extension"
+            echoerr "Supported formats: zip, rar, 7z, tar, tar.gz, tgz, tar.bz2, tbz2, tar.xz, txz, gz, bz2, xz"
+            return 1
             ;;
     esac
 
+    # Check if directory already exists
+    if [[ -d "$dir_name" ]]; then
+        echoerr "Error: Directory '$dir_name' already exists"
+        return 1
+    fi
+
     mkdir -p "$dir_name"
-    7zzs x "$file_name" -o"$dir_name"
+    
+    echo "Extracting '$file_name' to '$dir_name/'..."
+    
+    # Try to extract without password first
+    7zzs x "$file_name" -o"$dir_name" -p- &>/dev/null
+    local exit_code=$?
+    
+    # If extraction failed due to password (exit code 2), prompt for password
+    if [[ $exit_code -eq 2 ]]; then
+        echo "Archive is password protected."
+        local password
+        local max_attempts=3
+        local attempt=1
+        
+        while [[ $attempt -le $max_attempts ]]; do
+            read -s -p "Enter password (attempt $attempt/$max_attempts): " password
+            echo
+            
+            if [[ -z "$password" ]]; then
+                echoerr "Error: Password cannot be empty"
+                ((attempt++))
+                continue
+            fi
+            
+            # Try extraction with password
+            7zzs x "$file_name" -o"$dir_name" -p"$password" &>/dev/null
+            exit_code=$?
+            
+            if [[ $exit_code -eq 0 ]]; then
+                echo "Extraction complete!"
+                return 0
+            elif [[ $exit_code -eq 2 ]]; then
+                echoerr "Error: Incorrect password"
+                ((attempt++))
+            else
+                echoerr "Error: Extraction failed with exit code $exit_code"
+                rmdir "$dir_name" 2>/dev/null
+                return $exit_code
+            fi
+        done
+        
+        echoerr "Error: Maximum password attempts exceeded"
+        rmdir "$dir_name" 2>/dev/null
+        return 1
+    elif [[ $exit_code -ne 0 ]]; then
+        echoerr "Error: Extraction failed with exit code $exit_code"
+        rmdir "$dir_name" 2>/dev/null
+        return $exit_code
+    fi
+    
+    echo "Extraction complete!"
+    return 0
 }
 
 ## ::: danger Requirements
