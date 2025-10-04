@@ -386,7 +386,7 @@ function lsu() {
 ## ::: danger Requirements
 ## This function requires `7zzs`, see https://www.7-zip.org/download.html
 ## :::
-## `7zc` creates a 7Zip archive using the LZMA algorithm
+## `7zc` creates a 7Zip archive using the LZMA2 algorithm
 ## Usage: `7zc <directory>` or `7zc <filename1> <filename2> <...> <filenameN> <archive_name>`
 function 7zc() {
     if ! command -v 7zzs &> /dev/null; then
@@ -395,14 +395,13 @@ function 7zc() {
     fi
 
     if [[ -z $1 ]]; then    # Check if the first argument is not empty
-
         echoerr "Error: No arguments provided."
         return
     fi
 
     if [[ -d $1 ]]; then
         local dir_name=$(basename "$1")
-        7zzs a -t7z -m0=lzma -mx9 -mfb=64 -md=32m -ms=on "${dir_name}".7z "$1"
+        7zzs a -t7z -m0=lzma2 -mx9 -mfb=64 -md=32m -ms=on "${dir_name}".7z "$1"
         return
     fi
 
@@ -412,7 +411,7 @@ function 7zc() {
         return
     fi
 
-    7zzs a -t7z -m0=lzma -mx9 -mfb=64 -md=32m -ms=on "${@: -1}".7z "${@:1:$#-1}"
+    7zzs a -t7z -m0=lzma2 -mx9 -mfb=64 -md=32m -ms=on "${@: -1}".7z "${@:1:$#-1}"
 }
 
 ## ::: danger Requirements
