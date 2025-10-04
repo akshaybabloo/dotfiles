@@ -389,29 +389,67 @@ function lsu() {
 ## `7zc` creates a 7Zip archive using the LZMA2 algorithm
 ## Usage: `7zc <directory>` or `7zc <filename1> <filename2> <...> <filenameN> <archive_name>`
 function 7zc() {
+    # Check if 7zzs is installed
     if ! command -v 7zzs &> /dev/null; then
         echoerr "Error: 7zzs not found. Please install 7zzs from https://www.7-zip.org/download.html"
-        return
+        return 1
     fi
 
-    if [[ -z $1 ]]; then    # Check if the first argument is not empty
+    # Check if arguments are provided
+    if [[ -z $1 ]]; then
         echoerr "Error: No arguments provided."
-        return
+        echoerr "Usage: 7zc <directory> OR 7zc <file1> <file2> ... <archive_name>"
+        return 1
     fi
 
-    if [[ -d $1 ]]; then
-        local dir_name=$(basename "$1")
-        7zzs a -t7z -m0=lzma2 -mx9 -mfb=64 -md=32m -ms=on "${dir_name}".7z "$1"
-        return
+    # Single directory mode: if only one argument and it's a directory
+    if [[ $# -eq 1 && -d $1 ]]; then
+        local dir_name=$(basename "${1%/}")
+        local archive_name="${dir_name}.7z"
+        
+        # Check for existing archive
+        if [[ -f "$archive_name" ]]; then
+            echoerr "Error: $archive_name already exists"
+            return 1
+        fi
+        
+        echo "Compressing directory '$1' to '$archive_name'..."
+        7zzs a -t7z -m0=lzma2 -mx9 -mfb=64 -md=32m -ms=on "$archive_name" "$1"
+        return $?
     fi
 
-    # Ensure at least two arguments are provided for files + archive name
+    # Multiple files/directories mode
     if [[ $# -lt 2 ]]; then
-        echoerr "Error: Please provide multiple files and an archive name."
-        return
+        echoerr "Error: Please provide files/directories and an archive name."
+        echoerr "Usage: 7zc <file1> <file2> ... <archive_name>"
+        return 1
     fi
 
-    7zzs a -t7z -m0=lzma2 -mx9 -mfb=64 -md=32m -ms=on "${@: -1}".7z "${@:1:$#-1}"
+    # Get archive name (last argument) and strip .7z if provided
+    local archive_name="${@: -1}"
+    archive_name="${archive_name%.7z}.7z"
+    
+    # Check for existing archive
+    if [[ -f "$archive_name" ]]; then
+        echoerr "Error: $archive_name already exists"
+        return 1
+    fi
+    
+    # Get all items (all arguments except the last one)
+    local items=("${@:1:$#-1}")
+    
+    # Verify all source items exist
+    for item in "${items[@]}"; do
+        if [[ ! -e "$item" ]]; then
+            echoerr "Error: File or directory '$item' does not exist"
+            return 1
+        fi
+    done
+    
+    echo "Compressing ${#items[@]} item(s) to '$archive_name'..."
+    # Using maximum compression: LZMA2, ultra (-mx9), 64 word size, 32MB dictionary, solid archive
+    7zzs a -t7z -m0=lzma2 -mx9 -mfb=64 -md=32m -ms=on "$archive_name" "${items[@]}"
+    return $?
 }
 
 ## ::: danger Requirements
