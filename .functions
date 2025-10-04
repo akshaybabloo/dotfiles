@@ -67,18 +67,38 @@ function _loading() {
 
 function _requireSuperuser() {
     local file=$1
+    local operation=${2:-write}  # Default to write operation
 
-    # If current user has write or read access, no need for sudo
-    if [ -w "$file" ] || [ -r "$file" ]; then
+    # Check if file/directory exists
+    if [[ ! -e "$file" ]]; then
+        # For non-existent files, check parent directory
+        local parent_dir=$(dirname "$file")
+        if [[ ! -w "$parent_dir" ]]; then
+            return 1  # Need sudo to create file in this directory
+        fi
         return 0
     fi
 
-    # If the file is owned by root, and user is not root, require sudo
-    if [ "$(stat -c %U "$file")" == "root" ] && [ "$(id -u)" -ne 0 ]; then
-        return 1
-    fi
+    # Check based on operation type
+    case "$operation" in
+        read)
+            if [[ -r "$file" ]]; then
+                return 0  # Can read, no sudo needed
+            fi
+            ;;
+        write|edit|delete)
+            if [[ -w "$file" ]]; then
+                return 0  # Can write, no sudo needed
+            fi
+            ;;
+        *)
+            echoerr "Error: Unknown operation '$operation'"
+            return 2
+            ;;
+    esac
 
-    return 0
+    # If we reach here, we don't have the required permission
+    return 1  # Need sudo
 }
 
 function _redText() { printf "\e[1m\e[31m%s\e[0m\n" "$1"; }
@@ -92,8 +112,9 @@ function _blueText() { printf "\e[1m\e[94m%s\e[0m\n" "$1"; }
 ## Usage: `sudo_if_needed <file>`
 function sudo_if_needed() {
     local file=$1
+    local operation=${2:-write}
 
-    if _requireSuperuser "$file"; then
+    if _requireSuperuser "$file" "$operation"; then
         echo ""
     else
         echo "sudo"
