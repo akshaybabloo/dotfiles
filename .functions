@@ -734,11 +734,12 @@ function 7zx() {
     
     echo "Extracting '$file_name' to '$dir_name/'..."
     
-    # Try to extract without password first
-    7zzs x "$file_name" -o"$dir_name" -p- &>/dev/null
+    # Try to list archive without password to check if it's encrypted
+    # Suppress only stderr to hide "Wrong password" errors during detection
+    7zzs l "$file_name" -p- >/dev/null 2>&1
     local exit_code=$?
     
-    # If extraction failed due to password (exit code 2), prompt for password
+    # If listing failed due to password (exit code 2), prompt for password
     if [[ $exit_code -eq 2 ]]; then
         echo "Archive is password protected."
         local password
@@ -755,8 +756,8 @@ function 7zx() {
                 continue
             fi
             
-            # Try extraction with password
-            7zzs x "$file_name" -o"$dir_name" -p"$password" &>/dev/null
+            # Try extraction with password (show progress)
+            7zzs x "$file_name" -o"$dir_name" -p"$password"
             exit_code=$?
             
             if [[ $exit_code -eq 0 ]]; then
@@ -776,6 +777,16 @@ function 7zx() {
         rmdir "$dir_name" 2>/dev/null
         return 1
     elif [[ $exit_code -ne 0 ]]; then
+        echoerr "Error: Cannot read archive (exit code $exit_code)"
+        rmdir "$dir_name" 2>/dev/null
+        return $exit_code
+    fi
+    
+    # Extract without password (show progress)
+    7zzs x "$file_name" -o"$dir_name"
+    exit_code=$?
+    
+    if [[ $exit_code -ne 0 ]]; then
         echoerr "Error: Extraction failed with exit code $exit_code"
         rmdir "$dir_name" 2>/dev/null
         return $exit_code
