@@ -7,9 +7,6 @@ fi
 
 current_dir=$(pwd)
 
-printf "Checking software dependencies...\n\n"
-source $current_dir/install.sh
-
 printf "Install updater?\n"
 select yn in "Yes" "No"; do
     case $yn in

@@ -19,49 +19,64 @@ function _whereami() {
 
 function _loading() {
     local pid=$1
-    local message=$2
-    local sp="/-\|"  # Spinner characters
+    local message=${2:-"Processing"}
+    local sp="⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
+    local i=0
+    local start_time=$(date +%s)
     
-    # Save cursor state and hide it
-    tput civis
-
-    # Handle completion message
-    if [[ $1 == "--done" ]]; then
-        echo -e "\n$2"
-        tput cnorm  # Restore cursor
-        return 0
-    fi
-
+    # Color codes
+    local GREEN='\033[0;32m'
+    local RED='\033[0;31m'
+    local NC='\033[0m'
+    
+    # Trap to ensure cursor is restored
+    trap 'tput cnorm 2>/dev/null; trap - RETURN INT TERM' RETURN INT TERM
+    
+    # Hide cursor
+    tput civis 2>/dev/null
+    
     # Validate PID
-    if ! [[ "$pid" =~ ^[0-9]+$ ]] || [ ! -d "/proc/$pid" ]; then
-        echo "Error: Invalid process ID"
-        tput cnorm  # Restore cursor
+    if ! [[ "$pid" =~ ^[0-9]+$ ]]; then
+        echoerr "Invalid process ID: $pid"
+        tput cnorm 2>/dev/null
         return 1
     fi
-
-    # Start the Spinner
-    echo -n "$message "
-    while [ -d "/proc/$pid" ]; do
-        for i in $(seq 0 $((${#sp} - 1))); do
-            printf "\b${sp:$i:1}"
-            sleep 0.1
-            # Check if process ended
-            [ ! -d "/proc/$pid" ] && break 2
-        done
+    
+    # Check if process exists
+    if ! kill -0 "$pid" 2>/dev/null; then
+        echoerr "Process $pid does not exist"
+        tput cnorm 2>/dev/null
+        return 1
+    fi
+    
+    # Show message and spinner
+    printf "%s " "$message"
+    
+    # Spin until process completes
+    while kill -0 "$pid" 2>/dev/null; do
+        printf "\b%s" "${sp:$i:1}"
+        i=$(( (i + 1) % ${#sp} ))
+        sleep 0.1
     done
-
-    # Clean up the output
-    wait "$pid"
+    
+    # Calculate elapsed time
+    local end_time=$(date +%s)
+    local elapsed=$((end_time - start_time))
+    
+    # Wait for the process and get its exit status
+    wait "$pid" 2>/dev/null
     local exit_status=$?
     
-    if [ $exit_status -eq 0 ]; then
-        echo -e "\b\b Done!"
+    # Clear spinner and show result with time
+    if [[ $exit_status -eq 0 ]]; then
+        printf "\b${GREEN}✓${NC} (${elapsed}s)\n"
     else
-        echo -e "\b\b Failed!"
+        printf "\b${RED}✗${NC} (${elapsed}s)\n"
     fi
     
     # Restore cursor
-    tput cnorm
+    tput cnorm 2>/dev/null
+    
     return $exit_status
 }
 
@@ -1020,38 +1035,50 @@ function dot() {
     esac
 }
 
-## `dotc` checks if all the requirments are met for the dotfiles to work
-## Usage: `dotc`
-function dotc() {
-    script_dir=$(_whereami)
-
-    source $script_dir/install.sh
-}
-
 ## `dotu` updates the dotfiles to the latest main branch
 ## Usage: `dotu`
 function dotu() {
+    local current_dir repo_dir current_hash remote_hash
     current_dir=$(pwd)
     repo_dir=$(_whereami)
     
     # Check if repo directory exists
-    if [ ! -d "$repo_dir" ]; then
-        echo "Error: Repository directory not found"
+    if [[ ! -d "$repo_dir" ]]; then
+        echoerr "Repository directory not found: $repo_dir"
         return 1
     fi
     
-    cd "$repo_dir" || return 1
+    cd "$repo_dir" || {
+        echoerr "Failed to change to repository directory"
+        return 1
+    }
 
     # Check if we're in a git repository
     if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-        echo "Error: Not a git repository"
+        echoerr "Not a git repository: $repo_dir"
         cd "$current_dir"
         return 1
     fi
 
-    git fetch -q origin main &
-    fetch_pid=$!
-    _loading $fetch_pid "Checking for updates..."
+    # Check for uncommitted changes
+    if ! git diff-index --quiet HEAD -- 2>/dev/null; then
+        echoerr "You have uncommitted changes. Please commit or stash them first."
+        git status --short
+        cd "$current_dir"
+        return 1
+    fi
+
+    # Fetch updates with loading animation
+    (git fetch origin main 2>/dev/null) &
+    local fetch_pid=$!
+    _loading "$fetch_pid" "Checking for updates"
+    
+    # Wait for fetch to complete
+    if ! wait "$fetch_pid"; then
+        echoerr "Failed to fetch updates. Check your network connection."
+        cd "$current_dir"
+        return 1
+    fi
 
     # Get current hash
     current_hash=$(git rev-parse HEAD)
@@ -1059,38 +1086,57 @@ function dotu() {
     remote_hash=$(git rev-parse origin/main 2>/dev/null)
 
     # Check if remote hash retrieval failed
-    if [ -z "$remote_hash" ]; then
-        _loading --done "Error: Could not fetch remote hash"
+    if [[ -z "$remote_hash" ]]; then
+        echoerr "Could not fetch remote hash"
         cd "$current_dir"
         return 1
     fi
 
-    # Check if the hash is the same as the remote
-    if [[ $remote_hash == $current_hash ]]; then
-        _loading --done "Already up to date."
+    # Check if already up to date
+    if [[ "$remote_hash" == "$current_hash" ]]; then
+        _greenText "Already up to date."
         cd "$current_dir"
-    else
-        # Pull the latest changes quietly
-        if git pull -q origin main &
-        pull_pid=$!; then
-            _loading $pull_pid "Updates found. Updating now..."
-            echo "Checkout the diff at https://github.com/akshaybabloo/dotfiles/compare/$current_hash...$remote_hash"
+        return 0
+    fi
+
+    # Pull the latest changes with loading animation
+    (git pull --quiet origin main) &
+    local pull_pid=$!
+    _loading "$pull_pid" "Downloading updates"
+    
+    # Wait for pull to complete
+    if ! wait "$pull_pid"; then
+        echoerr "Failed to pull updates. You may have merge conflicts."
+        cd "$current_dir"
+        return 1
+    fi
+
+    _greenText "✓ Updated successfully!"
+    echo "View changes: https://github.com/akshaybabloo/dotfiles/compare/$current_hash...$remote_hash"
+
+    # Run updater script if it exists
+    if [[ -f "$repo_dir/updater.sh" ]]; then
+        echo "Running updater script..."
+        if bash "$repo_dir/updater.sh"; then
+            _greenText "✓ Updater completed"
         else
-            _loading --done "Error: Failed to pull updates"
+            echoerr "Updater script failed"
             cd "$current_dir"
             return 1
         fi
     fi
 
-    # Check if updater script exists before running
-    if [ -f "$repo_dir/updater.sh" ]; then
-        "$repo_dir/updater.sh"
-    else
-        echo "Warning: updater.sh not found"
-    fi
-
     cd "$current_dir"
-    reload
+    
+    # Reload shell configuration if reload function exists
+    if command -v reload &>/dev/null; then
+        echo "Reloading shell configuration..."
+        reload
+    else
+        _blueText "Please restart your shell or run: source ~/.bashrc"
+    fi
+    
+    return 0
 }
 
 ## `dotls` lists all the aliases and functions in the dotfiles with their descriptions
