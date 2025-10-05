@@ -423,6 +423,9 @@ function wrap_text() {
 ## :::
 ## `sd` securely deletes a file or directory by overwriting it before deletion
 ## Usage: `sd <file or directory> [-f] [-n <passes>]`
+## Options:
+##   `-f`, `--force`           Force deletion without confirmation prompt<br>
+##   `-n`, `--passes <num>`    Number of overwrite passes (default: 3)
 function sd() {
     local target=""
     local force=false
@@ -554,6 +557,8 @@ function sd() {
 ## :::
 ## `7zc` creates a 7Zip archive using the LZMA2 algorithm
 ## Usage: `7zc <directory> [-p]` or `7zc <file1> <file2> ... <archive_name> [-p]`
+## Options:
+##   `-p`    Prompt for password to encrypt the archive
 function 7zc() {
     # Check if 7zzs is installed
     if ! command -v 7zzs &> /dev/null; then
