@@ -1093,17 +1093,119 @@ function dotu() {
     reload
 }
 
-## `dotls` lists all the aliases and functions in the dotfiles and the shell
+## `dotls` lists all the aliases and functions in the dotfiles with their descriptions
 ## Usage: `dotls`
 function dotls() {
     script_dir=$(_whereami)
+    
+    # Get terminal width, default to 100 if not available
+    local term_width=${COLUMNS:-$(tput cols 2>/dev/null || echo 100)}
+    local name_width=22
+    local desc_width=$((term_width - name_width - 4))
 
     _blueText "Aliases"
-    grep -E "^alias" $script_dir/.aliases | sed -E "s/alias //g"
+    echo ""
+    
+    # Process aliases with ## descriptions
+    local description=""
+    
+    while IFS= read -r line; do
+        # Check if line is a ## comment (description)
+        if [[ $line == \#\#* ]]; then
+            # Extract comment text (skip ## markers and special patterns)
+            if [[ ! $line =~ ^##\ (h2:|Usage:|Options:|Examples:) ]]; then
+                desc=$(echo "$line" | sed -E 's/^##[[:space:]]*//')
+                # Skip ::: blocks
+                if [[ ! $desc =~ ^::: ]]; then
+                    if [[ -n $description ]]; then
+                        description="$description $desc"
+                    else
+                        description="$desc"
+                    fi
+                fi
+            fi
+        # Check if line is an alias definition
+        elif [[ $line == alias* ]]; then
+            # Extract alias name
+            alias_name=$(echo "$line" | sed -E 's/alias ([^=]+)=.*/\1/')
+            
+            printf "  %-${name_width}s" "$alias_name"
+            
+            if [[ -n $description ]]; then
+                # Use fmt to wrap text and indent continuation lines
+                if command -v fmt &> /dev/null; then
+                    echo "$description" | fmt -w "$desc_width" | \
+                        awk -v width="$name_width" 'NR==1 {print} NR>1 {printf "%*s%s\n", width+2, "", $0}'
+                else
+                    echo "$description"
+                fi
+            else
+                # If no description, show the alias definition
+                alias_def=$(echo "$line" | sed -E 's/alias [^=]+=(.*)$/\1/')
+                # Remove inline comments (single #)
+                if [[ $alias_def == *"#"* ]]; then
+                    alias_value=$(echo "$alias_def" | sed -E 's/([^#]+)#.*/\1/' | xargs)
+                else
+                    alias_value="$alias_def"
+                fi
+                echo "$alias_value"
+            fi
+            
+            # Reset description for next alias
+            description=""
+        # If we hit a single # comment or non-blank line, reset description
+        elif [[ $line == \#* ]] || [[ -n $line && ! $line =~ ^[[:space:]]*$ ]]; then
+            description=""
+        fi
+    done < "$script_dir/.aliases"
 
     echo -e "\n"
 
     _blueText "Functions"
-    grep -E "^function" $script_dir/.functions | sed -E "s/function //g"
-
+    echo ""
+    
+    # Process functions with descriptions from ## comments above them
+    local description=""
+    
+    while IFS= read -r line; do
+        # Check if line is a ## comment (description)
+        if [[ $line == \#\#* ]]; then
+            # Extract comment text (skip ## markers and special patterns)
+            if [[ ! $line =~ ^##\ (h2:|Usage:|Options:|Examples:) ]]; then
+                desc=$(echo "$line" | sed -E 's/^##[[:space:]]*//')
+                # Skip ::: blocks
+                if [[ ! $desc =~ ^::: ]]; then
+                    if [[ -n $description ]]; then
+                        description="$description $desc"
+                    else
+                        description="$desc"
+                    fi
+                fi
+            fi
+        # Check if line is a function definition
+        elif [[ $line == function\ [^_]* ]]; then
+            func_name=$(echo "$line" | sed -E 's/function ([^(]+)\(\).*/\1/')
+            
+            printf "  %-${name_width}s" "$func_name"
+            
+            if [[ -n $description ]]; then
+                # Use fmt to wrap text and indent continuation lines
+                if command -v fmt &> /dev/null; then
+                    echo "$description" | fmt -w "$desc_width" | \
+                        awk -v width="$name_width" 'NR==1 {print} NR>1 {printf "%*s%s\n", width+2, "", $0}'
+                else
+                    echo "$description"
+                fi
+            else
+                echo ""
+            fi
+            
+            # Reset description for next function
+            description=""
+        # If we hit a single # comment or non-blank line, reset description
+        elif [[ $line == \#* ]] || [[ -n $line && ! $line =~ ^[[:space:]]*$ ]]; then
+            description=""
+        fi
+    done < "$script_dir/.functions"
 }
+
