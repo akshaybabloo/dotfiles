@@ -402,6 +402,20 @@ function lsu() {
     done
 }
 
+## `wrap_text` wraps text to a specified width and indentation
+## Usage: `wrap_text "<text>" [width] [indent]`
+function wrap_text() {
+    local text=$1
+    local width=${2:-80}
+    local indent=${3:-0}
+    
+    if command -v fold &> /dev/null; then
+        echo "$text" | fold -s -w "$width" | awk -v indent="$indent" 'NR>1 {printf "%*s", indent, ""} {print}'
+    else
+        echo "$text"
+    fi
+}
+
 ## h2: File and Directory Compression Functions
 
 ## ::: danger Requirements
