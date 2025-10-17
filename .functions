@@ -571,9 +571,10 @@ function sd() {
 ## This function requires `7zzs`, see https://www.7-zip.org/download.html
 ## :::
 ## `7zc` creates a 7Zip archive using the LZMA2 algorithm
-## Usage: `7zc <directory> [-p]` or `7zc <file1> <file2> ... <archive_name> [-p]`
+## Usage: `7zc <directory> [-p] [-s <size>]` or `7zc <file1> <file2> ... <archive_name> [-p] [-s <size>]`
 ## Options:
-##   `-p`    Prompt for password to encrypt the archive
+##   `-p`              Prompt for password to encrypt the archive<br>
+##   `-s <size>`       Split archive into parts of specified size. Supports `b` (bytes)/`k` (kilobytes)/`m` (megabytes)/`g` (gigabytes) units (e.g., `-s 500m`, `-s 1g`, `-s 2048k`). Defaults to MB if no unit specified.
 function 7zc() {
     # Check if 7zzs is installed
     if ! command -v 7zzs &> /dev/null; then
@@ -584,17 +585,64 @@ function 7zc() {
     # Check if arguments are provided
     if [[ -z $1 ]]; then
         echoerr "Error: No arguments provided."
-        echoerr "Usage: 7zc <directory> [-p] OR 7zc <file1> <file2> ... <archive_name> [-p]"
+        echoerr "Usage: 7zc <directory> [-p] [-s <size>] OR 7zc <file1> <file2> ... <archive_name> [-p] [-s <size>]"
         return 1
     fi
 
-    # Check for -p flag
+    # Parse flags
     local use_password=false
     local password=""
-    if [[ "${@: -1}" == "-p" ]]; then
-        use_password=true
-        set -- "${@:1:$#-1}"  # Remove -p from arguments
-        
+    local split_size=""
+    local args=()
+    
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -p)
+                use_password=true
+                shift
+                ;;
+            -s)
+                if [[ -z $2 ]]; then
+                    echoerr "Error: -s requires a size argument"
+                    return 1
+                fi
+                
+                # Parse size with optional unit (b, k, m, g)
+                if [[ $2 =~ ^([0-9]+)([bkmg])?$ ]]; then
+                    local size_num="${BASH_REMATCH[1]}"
+                    local size_unit="${BASH_REMATCH[2]}"
+                    
+                    # Default to MB if no unit specified
+                    if [[ -z "$size_unit" ]]; then
+                        size_unit="m"
+                    fi
+                    
+                    split_size="${size_num}${size_unit}"
+                else
+                    echoerr "Error: -s requires a valid size (e.g., 500, 500m, 1g, 2048k)"
+                    return 1
+                fi
+                shift 2
+                ;;
+            *)
+                args+=("$1")
+                shift
+                ;;
+        esac
+    done
+    
+    # Restore arguments without flags
+    set -- "${args[@]}"
+    
+    # Check if arguments remain after flag parsing
+    if [[ -z $1 ]]; then
+        echoerr "Error: No files or directories provided."
+        echoerr "Usage: 7zc <directory> [-p] [-s <size>] OR 7zc <file1> <file2> ... <archive_name> [-p] [-s <size>]"
+        return 1
+    fi
+
+    # Handle password prompt if -p flag was set
+    if [[ "$use_password" == true ]]; then
         # Prompt for password
         read -s -p "Enter password: " password
         echo  # New line after password input
@@ -624,19 +672,26 @@ function 7zc() {
             return 1
         fi
         
-        echo "Compressing directory '$1' to '$archive_name'..."
-        if [[ "$use_password" == true ]]; then
-            7zzs a -t7z -m0=lzma2 -mx9 -mfb=64 -md=32m -ms=on -mhe=on -p"$password" "$archive_name" "$1"
+        if [[ -n "$split_size" ]]; then
+            echo "Compressing directory '$1' to '$archive_name' (split: ${split_size})..."
         else
-            7zzs a -t7z -m0=lzma2 -mx9 -mfb=64 -md=32m -ms=on "$archive_name" "$1"
+            echo "Compressing directory '$1' to '$archive_name'..."
         fi
+        
+        # Build 7z command with optional split and password
+        local cmd="7zzs a -t7z -m0=lzma2 -mx9 -mfb=64 -md=32m -ms=on"
+        [[ -n "$split_size" ]] && cmd="$cmd -v$split_size"
+        [[ "$use_password" == true ]] && cmd="$cmd -mhe=on -p\"$password\""
+        cmd="$cmd \"$archive_name\" \"$1\""
+        
+        eval $cmd
         return $?
     fi
 
     # Multiple files/directories mode
     if [[ $# -lt 2 ]]; then
         echoerr "Error: Please provide files/directories and an archive name."
-        echoerr "Usage: 7zc <file1> <file2> ... <archive_name> [-p]"
+        echoerr "Usage: 7zc <file1> <file2> ... <archive_name> [-p] [-s <size>]"
         return 1
     fi
 
@@ -661,13 +716,25 @@ function 7zc() {
         fi
     done
     
-    echo "Compressing ${#items[@]} item(s) to '$archive_name'..."
-    # Using maximum compression: LZMA2, ultra (-mx9), 64 word size, 32MB dictionary, solid archive
-    if [[ "$use_password" == true ]]; then
-        7zzs a -t7z -m0=lzma2 -mx9 -mfb=64 -md=32m -ms=on -mhe=on -p"$password" "$archive_name" "${items[@]}"
+    if [[ -n "$split_size" ]]; then
+        echo "Compressing ${#items[@]} item(s) to '$archive_name' (split: ${split_size})..."
     else
-        7zzs a -t7z -m0=lzma2 -mx9 -mfb=64 -md=32m -ms=on "$archive_name" "${items[@]}"
+        echo "Compressing ${#items[@]} item(s) to '$archive_name'..."
     fi
+    
+    # Build 7z command with optional split and password
+    # Using maximum compression: LZMA2, ultra (-mx9), 64 word size, 32MB dictionary, solid archive
+    local cmd="7zzs a -t7z -m0=lzma2 -mx9 -mfb=64 -md=32m -ms=on"
+    [[ -n "$split_size" ]] && cmd="$cmd -v$split_size"
+    [[ "$use_password" == true ]] && cmd="$cmd -mhe=on -p\"$password\""
+    cmd="$cmd \"$archive_name\""
+    
+    # Add all items to the command
+    for item in "${items[@]}"; do
+        cmd="$cmd \"$item\""
+    done
+    
+    eval $cmd
     return $?
 }
 
@@ -675,8 +742,9 @@ function 7zc() {
 ## This function requires `7zzs`, see https://www.7-zip.org/download.html
 ## :::
 ## `7zx` extracts a 7Zip archive to a directory with the same name as the archive.
-## Supported formats: `zip`, `rar`, `7z`, `tar`, `tar.gz`, `tgz`, `tar.bz2`, `tbz2`, `tar.xz`, `txz`, `gz`, `bz2`, `xz`
-## Usage: `7zx <filename>.7z`
+## Supported formats: `zip`, `rar`, `7z`, `tar`, `tar.gz`, `tgz`, `tar.bz2`, `tbz2`, `tar.xz`, `txz`, `gz`, `bz2`, `xz` 
+## For multi-part archives (e.g., `archive.7z.001`, `archive.7z.002`), extract the first part and 7-Zip will automatically use all parts.
+## Usage: `7zx <filename>.7z` or `7zx <filename>.7z.001` (for multi-part archives)
 function 7zx() {
     # Check if 7zzs is installed
     if ! command -v 7zzs &> /dev/null; then
