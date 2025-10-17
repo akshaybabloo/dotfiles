@@ -1074,7 +1074,6 @@ function _dot_help() {
     echo "Usage: dot [command]"
     echo
     echo "Commands:"
-    echo "  dotc        Checks if all the requirments are met for the dotfiles to work"
     echo "  dotu        Updates the dotfiles to the latest main branch"
     echo "  dotls       Lists all the aliases and functions in the dotfiles and the shell"
 }
@@ -1088,9 +1087,6 @@ function dot() {
     fi
 
     case $1 in
-        "c")
-            dotc
-            ;;
         "u")
             dotu
             ;;
