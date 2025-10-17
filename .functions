@@ -1095,26 +1095,24 @@ function dotu() {
     # Check if already up to date
     if [[ "$remote_hash" == "$current_hash" ]]; then
         _greenText "Already up to date."
-        cd "$current_dir"
-        return 0
+    else
+        # Pull the latest changes with loading animation
+        (git pull --quiet origin main) &
+        local pull_pid=$!
+        _loading "$pull_pid" "Downloading updates"
+        
+        # Wait for pull to complete
+        if ! wait "$pull_pid"; then
+            echoerr "Failed to pull updates. You may have merge conflicts."
+            cd "$current_dir"
+            return 1
+        fi
+
+        _greenText "✓ Updated successfully!"
+        echo "View changes: https://github.com/akshaybabloo/dotfiles/compare/$current_hash...$remote_hash"
     fi
 
-    # Pull the latest changes with loading animation
-    (git pull --quiet origin main) &
-    local pull_pid=$!
-    _loading "$pull_pid" "Downloading updates"
-    
-    # Wait for pull to complete
-    if ! wait "$pull_pid"; then
-        echoerr "Failed to pull updates. You may have merge conflicts."
-        cd "$current_dir"
-        return 1
-    fi
-
-    _greenText "✓ Updated successfully!"
-    echo "View changes: https://github.com/akshaybabloo/dotfiles/compare/$current_hash...$remote_hash"
-
-    # Run updater script if it exists
+    # Run updater script if it exists (always run, even if already up to date)
     if [[ -f "$repo_dir/updater.sh" ]]; then
         echo "Running updater script..."
         if bash "$repo_dir/updater.sh"; then
