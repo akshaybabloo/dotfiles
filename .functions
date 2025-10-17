@@ -1074,8 +1074,8 @@ function _dot_help() {
     echo "Usage: dot [command]"
     echo
     echo "Commands:"
-    echo "  dotu        Updates the dotfiles to the latest main branch"
-    echo "  dotls       Lists all the aliases and functions in the dotfiles and the shell"
+    echo "  u, update   Updates the dotfiles to the latest main branch"
+    echo "  ls          Lists all the aliases and functions in the dotfiles and the shell"
 }
 
 ## `dot` prints help for the dotfiles and can be used to run the dotfiles functions
@@ -1087,7 +1087,7 @@ function dot() {
     fi
 
     case $1 in
-        "u")
+        "u"|"update")
             dotu
             ;;
         "ls")
