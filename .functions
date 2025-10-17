@@ -1210,6 +1210,17 @@ function dotu() {
 function dotls() {
     script_dir=$(_whereami)
     
+    # Color codes for backtick highlighting
+    local CYAN='\033[0;36m'
+    local NC='\033[0m'
+    
+    # Helper function to highlight backticks
+    highlight_backticks() {
+        local text="$1"
+        # Replace `text` with colored version (remove backticks and add color)
+        echo "$text" | sed -E "s/\`([^\`]+)\`/$(printf "${CYAN}")\1$(printf "${NC}")/g"
+    }
+    
     # Get terminal width, default to 100 if not available
     local term_width=${COLUMNS:-$(tput cols 2>/dev/null || echo 100)}
     local name_width=22
@@ -1244,12 +1255,14 @@ function dotls() {
             printf "  %-${name_width}s" "$alias_name"
             
             if [[ -n $description ]]; then
+                # Highlight backticks first
+                local highlighted_desc=$(highlight_backticks "$description")
                 # Use fmt to wrap text and indent continuation lines
                 if command -v fmt &> /dev/null; then
-                    echo "$description" | fmt -w "$desc_width" | \
+                    echo -e "$highlighted_desc" | fmt -w "$desc_width" | \
                         awk -v width="$name_width" 'NR==1 {print} NR>1 {printf "%*s%s\n", width+2, "", $0}'
                 else
-                    echo "$description"
+                    echo -e "$highlighted_desc"
                 fi
             else
                 # If no description, show the alias definition
@@ -1301,12 +1314,14 @@ function dotls() {
             printf "  %-${name_width}s" "$func_name"
             
             if [[ -n $description ]]; then
+                # Highlight backticks first
+                local highlighted_desc=$(highlight_backticks "$description")
                 # Use fmt to wrap text and indent continuation lines
                 if command -v fmt &> /dev/null; then
-                    echo "$description" | fmt -w "$desc_width" | \
+                    echo -e "$highlighted_desc" | fmt -w "$desc_width" | \
                         awk -v width="$name_width" 'NR==1 {print} NR>1 {printf "%*s%s\n", width+2, "", $0}'
                 else
-                    echo "$description"
+                    echo -e "$highlighted_desc"
                 fi
             else
                 echo ""
