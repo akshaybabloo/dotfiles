@@ -83,6 +83,10 @@ process_file() {
             
             # Skip private functions (starting with _)
             if [[ $name == _* ]]; then
+                # Output sub_title if present, so h2 headings aren't lost
+                if [[ -n $sub_title ]]; then
+                    content_var+="$sub_title\n\n"
+                fi
                 comments=""
                 sub_title=""
                 continue

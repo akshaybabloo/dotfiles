@@ -436,13 +436,13 @@ function wrap_text() {
 ## ::: danger Requirements
 ## This function requires `shred` - `sudo apt install coreutils`.
 ## :::
-## `sd` securely deletes a file or directory by overwriting it before deletion
-## Usage: `sd <file or directory> [-f] [-n <passes>]`
+## `sd` securely deletes one or more files or directories by overwriting them before deletion
+## Usage: `sd <file or directory> [file2] [file3] ... [-f] [-n <passes>]`
 ## Options:
 ##   `-f`, `--force`           Force deletion without confirmation prompt<br>
 ##   `-n`, `--passes <num>`    Number of overwrite passes (default: 3)
 function sd() {
-    local target=""
+    local targets=()
     local force=false
     local passes=3
 
@@ -462,21 +462,16 @@ function sd() {
                 shift 2
                 ;;
             *)
-                if [[ -z $target ]]; then
-                    target=$1
-                else
-                    echoerr "Error: Multiple targets not supported"
-                    return 1
-                fi
+                targets+=("$1")
                 shift
                 ;;
         esac
     done
 
-    # Check if target is provided
-    if [[ -z $target ]]; then
+    # Check if any targets are provided
+    if [[ ${#targets[@]} -eq 0 ]]; then
         echoerr "Error: No target specified."
-        echoerr "Usage: sd <file or directory> [-f] [-n <passes>]"
+        echoerr "Usage: sd <file or directory> [file2] [file3] ... [-f] [-n <passes>]"
         return 1
     fi
 
@@ -486,28 +481,45 @@ function sd() {
         return 1
     fi
 
-    # Check if the file or directory exists
-    if [[ ! -e $target ]]; then
-        echoerr "Error: '$target' not found."
+    # Validate all targets exist and aren't symlinks
+    local invalid_targets=()
+    local symlink_targets=()
+    
+    for target in "${targets[@]}"; do
+        if [[ ! -e "$target" ]]; then
+            invalid_targets+=("$target")
+        elif [[ -L "$target" ]]; then
+            symlink_targets+=("$target")
+        fi
+    done
+    
+    # Report errors for invalid targets
+    if [[ ${#invalid_targets[@]} -gt 0 ]]; then
+        echoerr "Error: The following targets were not found:"
+        for target in "${invalid_targets[@]}"; do
+            echoerr "  - $target"
+        done
         return 1
     fi
-
-    # Handle symlinks - don't follow them
-    if [[ -L $target ]]; then
-        echoerr "Error: '$target' is a symbolic link. Remove it with 'rm' instead."
-        echoerr "Hint: Use 'rm $target' to remove the link, or 'sd \$(readlink -f $target)' to shred the target."
+    
+    # Report errors for symlinks
+    if [[ ${#symlink_targets[@]} -gt 0 ]]; then
+        echoerr "Error: The following targets are symbolic links. Remove them with 'rm' instead:"
+        for target in "${symlink_targets[@]}"; do
+            echoerr "  - $target"
+            echoerr "    Hint: Use 'rm $target' to remove the link, or 'sd \$(readlink -f $target)' to shred the target."
+        done
         return 1
     fi
-
-    local sudo_cmd
-    sudo_cmd=$(sudo_if_needed "$target")
 
     # Confirmation prompt (unless -f flag is used)
     if [[ "$force" == false ]]; then
-        local item_type="file"
-        [[ -d $target ]] && item_type="directory"
-        
-        echo "WARNING: You are about to securely delete $item_type: $target"
+        echo "WARNING: You are about to securely delete ${#targets[@]} item(s):"
+        for target in "${targets[@]}"; do
+            local item_type="file"
+            [[ -d "$target" ]] && item_type="directory"
+            echo "  - $target ($item_type)"
+        done
         echo "This operation is IRREVERSIBLE and will overwrite the data $passes time(s)."
         read -p "Are you sure? (yes/no): " confirmation
         
@@ -517,51 +529,75 @@ function sd() {
         fi
     fi
 
-    # If it's a directory, use find to securely delete all files within it
-    if [[ -d $target ]]; then
-        echo "Securely deleting files in directory: $target"
+    # Process each target
+    local failed_targets=()
+    local success_count=0
+    
+    for target in "${targets[@]}"; do
+        local sudo_cmd
+        sudo_cmd=$(sudo_if_needed "$target")
         
-        # Count files for progress indication
-        local file_count
-        file_count=$(find "$target" -type f | wc -l)
-        
-        if [[ $file_count -eq 0 ]]; then
-            echo "No files to shred in directory."
-        else
-            echo "Shredding $file_count file(s) with $passes overwrite pass(es)..."
+        # If it's a directory, use find to securely delete all files within it
+        if [[ -d "$target" ]]; then
+            echo "Securely deleting files in directory: $target"
             
-            # Shred all files: -n (passes), -v (verbose), -z (zero), -u (remove)
-            $sudo_cmd find "$target" -type f -exec shred -n "$passes" -vzu {} \;
+            # Count files for progress indication
+            local file_count
+            file_count=$(find "$target" -type f | wc -l)
+            
+            if [[ $file_count -eq 0 ]]; then
+                echo "No files to shred in directory."
+            else
+                echo "Shredding $file_count file(s) with $passes overwrite pass(es)..."
+                
+                # Shred all files: -n (passes), -v (verbose), -z (zero), -u (remove)
+                $sudo_cmd find "$target" -type f -exec shred -n "$passes" -vzu {} \;
+                local exit_code=$?
+                
+                if [[ $exit_code -ne 0 ]]; then
+                    echoerr "Error: Failed to shred some files in '$target' (exit code $exit_code)"
+                    failed_targets+=("$target")
+                    continue
+                fi
+            fi
+            
+            # Remove the empty directory structure
+            echo "Removing directory structure..."
+            $sudo_cmd rm -rf "$target"
+            
+            if [[ $? -eq 0 ]]; then
+                echo "Successfully deleted: $target"
+                ((success_count++))
+            else
+                echoerr "Error: Failed to remove directory '$target'"
+                failed_targets+=("$target")
+            fi
+        else
+            # If it's a file, securely delete it directly
+            echo "Securely deleting file: $target"
+            $sudo_cmd shred -n "$passes" -vzu "$target"
             local exit_code=$?
             
-            if [[ $exit_code -ne 0 ]]; then
-                echoerr "Error: Failed to shred some files (exit code $exit_code)"
-                return $exit_code
+            if [[ $exit_code -eq 0 ]]; then
+                echo "Successfully deleted: $target"
+                ((success_count++))
+            else
+                echoerr "Error: Failed to shred file '$target' (exit code $exit_code)"
+                failed_targets+=("$target")
             fi
         fi
-        
-        # Remove the empty directory structure
-        echo "Removing directory structure..."
-        $sudo_cmd rm -rf "$target"
-        
-        if [[ $? -eq 0 ]]; then
-            echo "Successfully deleted: $target"
-        else
-            echoerr "Error: Failed to remove directory"
-            return 1
-        fi
-    else
-        # If it's a file, securely delete it directly
-        echo "Securely deleting file: $target"
-        $sudo_cmd shred -n "$passes" -vzu "$target"
-        local exit_code=$?
-        
-        if [[ $exit_code -eq 0 ]]; then
-            echo "Successfully deleted: $target"
-        else
-            echoerr "Error: Failed to shred file (exit code $exit_code)"
-            return $exit_code
-        fi
+    done
+    
+    # Summary
+    echo ""
+    echo "Summary: Successfully deleted $success_count of ${#targets[@]} item(s)"
+    
+    if [[ ${#failed_targets[@]} -gt 0 ]]; then
+        echoerr "Failed to delete ${#failed_targets[@]} item(s):"
+        for target in "${failed_targets[@]}"; do
+            echoerr "  - $target"
+        done
+        return 1
     fi
     
     return 0
