@@ -908,11 +908,11 @@ function 7zx() {
 }
 
 ## ::: danger Requirements
-## This function requires `zstd`. Install it from `sudo apt install zstd`.
+## This function requires `zstd`. Install it from `sudo apt install zstd` or download it from [GitHub Release](https://github.com/facebook/zstd/releases).
 ## :::
-## `zstdc` compresses a file or directory using zstd with tar
-## Usage: `zstdc <file or directory>`
-function zstdc() {
+## `zc` compresses a file or directory using zstd with tar
+## Usage: `zc <file or directory>`
+function zc() {
     local file_folder=$1
     local file_folder_name=$(basename "$file_folder")
 
@@ -939,11 +939,11 @@ function zstdc() {
 }
 
 ## ::: danger Requirements
-## This function requires `zstd`. Install it from `sudo apt install zstd`.
+## This function requires `zstd`. Install it from `sudo apt install zstd` or download it from [GitHub Release](https://github.com/facebook/zstd/releases).
 ## :::
-## `zstdx` extracts a zstd compressed tar file
-## Usage: `zstdx <file.tar.zst>`
-function zstdx() {
+## `zx` extracts a zstd compressed tar file
+## Usage: `zx <file.tar.zst>`
+function zx() {
     local file=$1
     local file_name=$(basename "$file" .tar.zst)
 
