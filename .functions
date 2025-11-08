@@ -521,9 +521,15 @@ function sd() {
             echo "  - $target ($item_type)"
         done
         echo "This operation is IRREVERSIBLE and will overwrite the data $passes time(s)."
-        read -p "Are you sure? (yes/no): " confirmation
+        read -p "Continue? [Y/n]: " confirmation
         
-        if [[ "$confirmation" != "yes" ]]; then
+        # Default to Y if empty (just Enter pressed)
+        confirmation=${confirmation:-Y}
+        
+        # Convert to lowercase for comparison
+        confirmation=$(echo "$confirmation" | tr '[:upper:]' '[:lower:]')
+        
+        if [[ "$confirmation" != "y" && "$confirmation" != "yes" ]]; then
             echo "Operation cancelled."
             return 0
         fi
