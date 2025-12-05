@@ -440,11 +440,11 @@ function wrap_text() {
 ## Usage: `sd <file or directory> [file2] [file3] ... [-f] [-n <passes>]`
 ## Options:
 ##   `-f`, `--force`           Force deletion without confirmation prompt<br>
-##   `-n`, `--passes <num>`    Number of overwrite passes (default: 3)
+##   `-n`, `--passes <num>`    Number of overwrite passes (default: 5)
 function sd() {
     local targets=()
     local force=false
-    local passes=3
+    local passes=5
 
     # Parse arguments
     while [[ $# -gt 0 ]]; do
