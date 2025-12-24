@@ -784,8 +784,13 @@ function 7zc() {
 ## This function requires `7zzs`, see https://www.7-zip.org/download.html
 ## :::
 ## `7zx` extracts a 7Zip archive to a directory with the same name as the archive.
-## Supported formats: `zip`, `rar`, `7z`, `tar`, `tar.gz`, `tgz`, `tar.bz2`, `tbz2`, `tar.xz`, `txz`, `gz`, `bz2`, `xz` 
-## For multi-part archives (e.g., `archive.7z.001`, `archive.7z.002`), extract the first part and 7-Zip will automatically use all parts.
+## Supported formats: `zip`, `rar`, `7z`, `tar`, `tar.gz`, `tgz`, `tar.bz2`, `tbz2`, `tar.xz`, `txz`, `gz`, `bz2`, `xz`
+##
+## ::: warning Multi-part Archives
+## For multi-part archives, **always extract the first part** and 7-Zip will automatically use all parts:
+## - 7-Zip format: `archive.7z.001` (extract this, not `.002`, `.003`, etc.)
+## - RAR format: `archive.rar` (extract this, not `.r00`, `.r01`, etc.) or `archive.part1.rar` or `archive.part01.rar`
+## :::
 ## Usage: `7zx <filename>.7z` or `7zx <filename>.7z.001` (for multi-part archives)
 function 7zx() {
     # Check if 7zzs is installed
@@ -813,16 +818,40 @@ function 7zx() {
     local dir_name
     local base_name=$(basename "$file_name")
 
+    # Check if user is trying to extract a non-first part of a multi-part RAR archive
+    if [[ "$base_name" =~ \.(r[0-9]{2})$ ]]; then
+        local first_part="${file_name%.r[0-9][0-9]}.rar"
+        echoerr "Error: You're trying to extract part ${BASH_REMATCH[1]} of a multi-part RAR archive."
+        echoerr "Please extract the first part instead: $first_part"
+        echoerr "7-Zip will automatically use all parts."
+        return 1
+    fi
+    
+    if [[ "$base_name" =~ \.part([0-9]+)\.rar$ ]] && [[ "${BASH_REMATCH[1]}" != "1" ]] && [[ "${BASH_REMATCH[1]}" != "01" ]]; then
+        echoerr "Error: You're trying to extract part ${BASH_REMATCH[1]} of a multi-part RAR archive."
+        echoerr "Please extract the first part instead (part1.rar or part01.rar)."
+        echoerr "7-Zip will automatically use all parts."
+        return 1
+    fi
+
     # Determine the directory name based on the file extension
     case "$extension" in
         zip)
             dir_name="${base_name%.zip}"
             ;;
         rar)
-            # Handle multi-part rar: file.part1.rar, file.part2.rar, etc.
-            if [[ "$base_name" =~ \.part[0-9]+\.rar$ ]]; then
+            # Handle multi-part rar formats:
+            # - archive.part1.rar, archive.part2.rar, etc. (text numbers)
+            # - archive.part01.rar, archive.part02.rar, etc. (leading zeros)
+            # - archive.rar is the first part (may have .r00, .r01 as additional parts)
+            if [[ "$base_name" =~ \.part0*1\.rar$ ]]; then
+                # First part with .part1.rar or .part01.rar format
+                dir_name="${base_name%.part*.rar}"
+            elif [[ "$base_name" =~ \.part[0-9]+\.rar$ ]]; then
+                # Should not reach here due to earlier check, but handle anyway
                 dir_name="${base_name%.part*.rar}"
             else
+                # Single file or first part of .rar/.r00/.r01 format
                 dir_name="${base_name%.rar}"
             fi
             ;;
