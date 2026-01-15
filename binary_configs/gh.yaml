@@ -1,12 +1,13 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/akshaybabloo/binstall/refs/heads/main/schema.json
-name: "Hugo"
-description: "A fast and flexible static site generator"
-url: "https://github.com/gohugoio/hugo"
+name: "gh"
+description: "GitHub CLI"
+url: "https://github.com/cli/cli/"
 installLocation: "~/bin"
 files:
-  - fileName: "hugo"
-    checkVersion: true
+  - fileName: "gh"
+    sourcePath: "bin/gh"
     copyIt: true
+    checkVersion: true
     versionCommand:
-      args: "version"
+      args: "--version"
       regexVersion: "\\d+\\.\\d+\\.\\d+"

@@ -6,10 +6,10 @@ installLocation: "~/bin"
 files:
   - fileName: "uv"
     copyIt: true
-    execute: true
+    checkVersion: true
     versionCommand:
       args: "--version"
       regexVersion: "\\d+\\.\\d+\\.\\d+"
   - fileName: "uvx"
     copyIt: true
-    execute: false
+    checkVersion: false

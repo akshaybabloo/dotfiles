@@ -6,7 +6,7 @@ installLocation: "~/bin"
 files:
   - fileName: "gdl"
     copyIt: true
-    execute: true
+    checkVersion: true
     versionCommand:
       args: "--version"
       regexVersion: "\\d+\\.\\d+\\.\\d+"

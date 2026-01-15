@@ -5,7 +5,7 @@ url: "https://github.com/Schniz/fnm"
 installLocation: "~/bin"
 files:
   - fileName: "fnm"
-    execute: true
+    checkVersion: true
     copyIt: true
     versionCommand:
       args: "version"

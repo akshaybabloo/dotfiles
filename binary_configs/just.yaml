@@ -5,7 +5,7 @@ url: "https://github.com/casey/just"
 installLocation: "~/bin"
 files:
   - fileName: "just"
-    execute: true
+    checkVersion: true
     copyIt: true
     versionCommand:
       args: "--version"

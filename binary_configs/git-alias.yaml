@@ -5,7 +5,7 @@ url: "https://github.com/akshaybabloo/git-alias"
 installLocation: "~/bin"
 files:
   - fileName: "git-alias"
-    execute: true
+    checkVersion: true
     copyIt: true
     versionCommand:
       args: "--version"

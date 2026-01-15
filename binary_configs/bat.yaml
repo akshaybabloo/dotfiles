@@ -6,7 +6,7 @@ installLocation: "~/bin"
 files:
   - fileName: "bat"
     copyIt: true
-    execute: true
+    checkVersion: true
     versionCommand:
       args: "--version"
       regexVersion: "\\d+\\.\\d+\\.\\d+"

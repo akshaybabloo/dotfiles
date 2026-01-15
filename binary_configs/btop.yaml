@@ -5,15 +5,9 @@ url: "https://github.com/aristocratos/btop"
 installLocation: "~/bin"
 files:
   - fileName: "btop"
-    copyIt: false
-    execute: true
-    versionCommand:
-      args: "--version"
-      regexVersion: "\\d+\\.\\d+\\.\\d+"
-  - fileName: "btop/bin/btop"
+    sourcePath: "btop/bin/btop"
     copyIt: true
-    renameTo: "btop"
-    execute: false
+    checkVersion: true
     versionCommand:
       args: "--version"
       regexVersion: "\\d+\\.\\d+\\.\\d+"

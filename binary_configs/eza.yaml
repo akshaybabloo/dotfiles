@@ -5,7 +5,7 @@ url: "https://github.com/eza-community/eza"
 installLocation: "~/bin"
 files:
   - fileName: "eza"
-    execute: true
+    checkVersion: true
     copyIt: true
     versionCommand:
       args: "--version"

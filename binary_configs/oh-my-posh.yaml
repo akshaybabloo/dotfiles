@@ -5,16 +5,9 @@ url: "https://github.com/JanDeDobbeleer/oh-my-posh"
 installLocation: "~/bin"
 files:
   - fileName: "oh-my-posh"
-    execute: true
-    executeWhenCopying: false
-    copyIt: false
-    versionCommand:
-      args: "--version"
-      regexVersion: "\\d+\\.\\d+\\.\\d+"
-  - fileName: "posh-linux-amd64"
-    renameTo: "oh-my-posh"
-    execute: false
+    sourcePath: "posh-linux-amd64"
     copyIt: true
+    checkVersion: true
     versionCommand:
       args: "--version"
       regexVersion: "\\d+\\.\\d+\\.\\d+"

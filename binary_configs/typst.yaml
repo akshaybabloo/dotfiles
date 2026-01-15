@@ -5,7 +5,7 @@ url: "https://github.com/typst/typst"
 installLocation: "~/bin"
 files:
   - fileName: "typst"
-    execute: true
+    checkVersion: true
     copyIt: true
     versionCommand:
       args: "--version"

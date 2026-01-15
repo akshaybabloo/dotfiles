@@ -5,7 +5,7 @@ url: "https://github.com/junegunn/fzf"
 installLocation: "~/bin"
 files:
   - fileName: "fzf"
-    execute: true
+    checkVersion: true
     copyIt: true
     versionCommand:
       args: "--version"

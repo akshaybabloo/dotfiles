@@ -6,7 +6,7 @@ installLocation: "~/bin"
 files:
   - fileName: "goreleaser"
     copyIt: true
-    execute: true
+    checkVersion: true
     versionCommand:
       args: "--version"
       regexVersion: "GitVersion:\\s+\\d+\\.\\d+\\.\\d+"

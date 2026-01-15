@@ -5,7 +5,7 @@ url: "https://github.com/akshaybabloo/fs_rs"
 installLocation: "~/bin"
 files:
   - fileName: "fs_rs"
-    execute: true
+    checkVersion: true
     copyIt: true
     versionCommand:
       args: "--version"

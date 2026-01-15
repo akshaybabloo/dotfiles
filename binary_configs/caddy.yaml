@@ -5,7 +5,7 @@ url: "https://github.com/caddyserver/caddy"
 installLocation: "~/bin"
 files:
   - fileName: "caddy"
-    execute: true
+    checkVersion: true
     copyIt: true
     versionCommand:
       args: "--version"

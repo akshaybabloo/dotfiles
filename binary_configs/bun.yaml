@@ -6,10 +6,10 @@ installLocation: "~/bin"
 files:
   - fileName: "bun"
     copyIt: true
-    execute: true
+    checkVersion: true
     versionCommand:
       args: "--version"
       regexVersion: "\\d+\\.\\d+\\.\\d+"
   - fileName: "bunx"
     copyIt: true
-    execute: false
+    checkVersion: false

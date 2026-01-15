@@ -5,7 +5,7 @@ url: "https://github.com/akshaybabloo/cp2"
 installLocation: "~/bin"
 files:
   - fileName: "cp2"
-    execute: true
+    checkVersion: true
     copyIt: true
     versionCommand:
       args: "--version"
