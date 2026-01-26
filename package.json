@@ -1,0 +1,10 @@
+{
+  "name": "dotfiles",
+  "scripts": {
+    "docs:build": "pnpm --filter dotfiles-docs run docs:build"
+  },
+  "packageManager": "pnpm@10.28.1",
+  "devDependencies": {
+    "wrangler": "^4.60.0"
+  }
+}
