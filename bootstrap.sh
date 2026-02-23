@@ -75,16 +75,16 @@ install_dependencies() {
     
     case "$pkg_manager" in
         apt)
-            sudo apt update && sudo apt install -y curl git
+            sudo apt update && sudo apt install -y curl git jq
             ;;
         dnf|yum)
-            sudo "$pkg_manager" install -y curl git
+            sudo "$pkg_manager" install -y curl git jq
             ;;
         pacman)
-            sudo pacman -Sy --noconfirm curl git
+            sudo pacman -Sy --noconfirm curl git jq
             ;;
         brew)
-            brew install curl git
+            brew install curl git jq
             ;;
         *)
             log_error "Unsupported package manager"
