@@ -11,6 +11,7 @@ next:
 
 ::: danger Note
 Do not run the install script with `sudo`. Aliases and functions can be used with `sudo` if you want to.
+You can override this by using `--allow-root` when running the installer, but it's not recommended.
 :::
 
 Some helpful dotfiles for your system.
