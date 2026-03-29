@@ -1061,8 +1061,14 @@ function tgc() {
         return
     fi
 
-    # Compress the file or directory
-    tar -czf "${file_folder_name}.tar.gz" "$file_folder"
+    # Compress the file or directory (with progress bar if pv is available)
+    if command -v pv &> /dev/null; then
+        local total_size
+        total_size=$(du -sb "$file_folder" | awk '{print $1}')
+        tar -cf - "$file_folder" | pv -s "$total_size" | gzip > "${file_folder_name}.tar.gz"
+    else
+        tar -czf "${file_folder_name}.tar.gz" "$file_folder"
+    fi
 }
 
 ## `tgx` extracts a gzip compressed tar file
@@ -1085,8 +1091,12 @@ function tgx() {
     local sudo_cmd
     sudo_cmd=$(sudo_if_needed "$file")
 
-    # Extract the file
-    $sudo_cmd tar -xzf "$file"
+    # Extract the file (with progress bar if pv is available)
+    if command -v pv &> /dev/null; then
+        pv "$file" | $sudo_cmd tar -xzf -
+    else
+        $sudo_cmd tar -xzf "$file"
+    fi
 }
 
 ## h2: Git Related Functions
