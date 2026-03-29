@@ -1043,6 +1043,52 @@ function zx() {
     $sudo_cmd tar --use-compress-program="zstd -d" -xf "$file"
 }
 
+## `tgc` compresses a file or directory using tar with gzip
+## Usage: `tgc <file or directory>`
+function tgc() {
+    local file_folder=$1
+    local file_folder_name=$(basename "$file_folder")
+
+    # Check if the first argument is not empty
+    if [[ -z $file_folder ]]; then
+        echoerr "Error: No arguments provided."
+        return
+    fi
+
+    # Check if the file or directory exists
+    if [[ ! -e $file_folder ]]; then
+        echoerr "Error: $file_folder not found."
+        return
+    fi
+
+    # Compress the file or directory
+    tar -czf "${file_folder_name}.tar.gz" "$file_folder"
+}
+
+## `tgx` extracts a gzip compressed tar file
+## Usage: `tgx <file.tar.gz>`
+function tgx() {
+    local file=$1
+
+    # Check if the first argument is not empty
+    if [[ -z $file ]]; then
+        echoerr "Error: No arguments provided."
+        return
+    fi
+
+    # Check if the file exists
+    if [[ ! -e $file ]]; then
+        echoerr "Error: $file not found."
+        return
+    fi
+
+    local sudo_cmd
+    sudo_cmd=$(sudo_if_needed "$file")
+
+    # Extract the file
+    $sudo_cmd tar -xzf "$file"
+}
+
 ## h2: Git Related Functions
 
 ## `gclone` clones a git repository and cd's into it
