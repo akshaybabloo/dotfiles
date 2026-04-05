@@ -1044,30 +1044,73 @@ function zx() {
 }
 
 ## `tgc` compresses a file or directory using tar with gzip
-## Usage: `tgc <file or directory>`
+## Usage: `tgc <file or directory>` or `tgc <file1> <file2> ... <archive_name>`
 function tgc() {
-    local file_folder=$1
-    local file_folder_name=$(basename "$file_folder")
-
-    # Check if the first argument is not empty
-    if [[ -z $file_folder ]]; then
+    # Check if arguments are provided
+    if [[ -z $1 ]]; then
         echoerr "Error: No arguments provided."
-        return
+        echoerr "Usage: tgc <file or directory> OR tgc <file1> <file2> ... <archive_name>"
+        return 1
     fi
 
-    # Check if the file or directory exists
-    if [[ ! -e $file_folder ]]; then
-        echoerr "Error: $file_folder not found."
-        return
+    # Single file/directory mode
+    if [[ $# -eq 1 ]]; then
+        local file_folder=$1
+        local file_folder_name=$(basename "$file_folder")
+
+        if [[ ! -e $file_folder ]]; then
+            echoerr "Error: $file_folder not found."
+            return 1
+        fi
+
+        if command -v pv &> /dev/null; then
+            local total_size
+            total_size=$(du -sb "$file_folder" | awk '{print $1}')
+            tar -cf - "$file_folder" | pv -s "$total_size" | gzip > "${file_folder_name}.tar.gz"
+        else
+            tar -czf "${file_folder_name}.tar.gz" "$file_folder"
+        fi
+        return $?
     fi
 
-    # Compress the file or directory (with progress bar if pv is available)
+    # Multiple items mode: last argument is the archive name
+    if [[ $# -lt 2 ]]; then
+        echoerr "Error: Please provide files/directories and an archive name."
+        echoerr "Usage: tgc <file1> <file2> ... <archive_name>"
+        return 1
+    fi
+
+    # Get archive name (last argument) and strip .tar.gz if provided
+    local archive_name="${@: -1}"
+    archive_name="${archive_name%.tar.gz}.tar.gz"
+
+    # Check for existing archive
+    if [[ -f "$archive_name" ]]; then
+        echoerr "Error: $archive_name already exists"
+        return 1
+    fi
+
+    # Get all items (all arguments except the last one)
+    local items=("${@:1:$#-1}")
+
+    # Verify all source items exist
+    for item in "${items[@]}"; do
+        if [[ ! -e "$item" ]]; then
+            echoerr "Error: '$item' not found."
+            return 1
+        fi
+    done
+
+    echo "Compressing ${#items[@]} item(s) to '$archive_name'..."
+
     if command -v pv &> /dev/null; then
-        local total_size
-        total_size=$(du -sb "$file_folder" | awk '{print $1}')
-        tar -cf - "$file_folder" | pv -s "$total_size" | gzip > "${file_folder_name}.tar.gz"
+        local total_size=0
+        for item in "${items[@]}"; do
+            total_size=$((total_size + $(du -sb "$item" | awk '{print $1}')))
+        done
+        tar -cf - "${items[@]}" | pv -s "$total_size" | gzip > "$archive_name"
     else
-        tar -czf "${file_folder_name}.tar.gz" "$file_folder"
+        tar -czf "$archive_name" "${items[@]}"
     fi
 }
 
