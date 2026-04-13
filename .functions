@@ -120,6 +120,18 @@ function _redText() { printf "\e[1m\e[31m%s\e[0m\n" "$1"; }
 function _greenText() { printf "\e[1m\e[32m%s\e[0m\n" "$1"; }
 function _blueText() { printf "\e[1m\e[94m%s\e[0m\n" "$1"; }
 
+function _wslHomePath() {
+    # Check if in WSL
+    if ! grep -qEi "(Microsoft|WSL)" /proc/version &> /dev/null; then
+        echoerr "Error: This function is intended to be used in WSL (Windows Subsystem for Linux)."
+        return 1
+    fi
+
+    # Get Windows username and construct the home path
+    local win_user=$(powershell.exe -Command "[System.Environment]::UserName" 2>/dev/null | tr -d '\r')
+    local path=$(wslpath "C:\\Users\\$win_user")
+    echo "$path"
+}
 
 ## h2: General Functions
 
@@ -429,6 +441,22 @@ function wrap_text() {
     else
         echo "$text"
     fi
+}
+
+## `pww` similar to `pw` but from wsl
+## Usage: `pww`
+function pww() {
+    local home_path="$(_wslHomePath)"
+
+    cd "${home_path}/code/work" || return 1
+}
+
+## `ppw` similar to `pp` but from wsl
+## Usage: `ppw`
+function ppw {
+    local home_path="$(_wslHomePath)"
+
+    cd "${home_path}/code/personal" || return 1
 }
 
 ## h2: File and Directory Compression Functions
