@@ -3,6 +3,10 @@ name: "goreleaser"
 description: "Release engineering, simplified"
 url: "https://github.com/goreleaser/goreleaser"
 installLocation: "~/bin"
+download:
+  linux:
+    amd64:
+      fileName: "goreleaser_Linux_arm64.tar.gz"
 files:
   - fileName: "goreleaser"
     copyIt: true
