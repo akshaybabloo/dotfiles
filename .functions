@@ -1441,9 +1441,9 @@ function dotub() {
     fi
 
     if [[ "$dry_run" == true ]]; then
-        binstall --config-dir "$config_dir" --dry-run
+        binstall download "$config_dir" --dry-run
     else
-        binstall --config-dir "$config_dir"
+        binstall download "$config_dir"
     fi
 }
 
