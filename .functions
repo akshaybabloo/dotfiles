@@ -1399,6 +1399,39 @@ function dotu() {
     return 0
 }
 
+## `dotub` updates binary files only to its latest version from GitHub releases.
+## Usage: `dotub` or `dotub --dry-run` to see what would be updated without actually updating
+function dotub() {
+    case $1 in
+        "--dry-run")
+            _blueText "Checking for binary updates (dry run)..."
+            ;;
+        *)
+            _blueText "Checking for binary updates..."
+            ;;
+    esac
+
+    local script_dir=$(_whereami)
+    local config_dir="$script_dir/binary_configs"
+
+    if [[ ! -d $config_dir ]]; then
+        _redText "Config directory not found: $config_dir"
+        return 1
+    fi
+
+    # Check if binstall is installed
+    if ! command -v binstall &> /dev/null; then
+        _redText "binstall not found"
+        return 1
+    fi
+
+    if [[ "$1" == "--dry-run" ]]; then
+        binstall --config-dir "$config_dir" --dry-run
+    else
+        binstall --config-dir "$config_dir"
+    fi
+}
+
 ## `dotls` lists all the aliases and functions in the dotfiles with their descriptions
 ## Usage: `dotls`
 function dotls() {
