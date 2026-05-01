@@ -6,7 +6,7 @@ installLocation: "~/bin"
 download:
   linux:
     amd64:
-      fileName: "goreleaser_Linux_arm64.tar.gz"
+      fileName: "goreleaser_Linux_x86_64.tar.gz"
 files:
   - fileName: "goreleaser"
     copyIt: true
