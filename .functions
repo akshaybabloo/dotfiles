@@ -123,8 +123,7 @@ function _blueText() { printf "\e[1m\e[94m%s\e[0m\n" "$1"; }
 function _wslHomePath() {
     # Check if in WSL
     if ! grep -qEi "(Microsoft|WSL)" /proc/version &> /dev/null; then
-        echoerr "Error: This function is intended to be used in WSL (Windows Subsystem for Linux)."
-        return 1
+        die "Error: This function is intended to be used in WSL (Windows Subsystem for Linux)."
     fi
 
     # Get Windows username and construct the home path
@@ -443,6 +442,8 @@ function wrap_text() {
     fi
 }
 
+## h2: WSL-Specific Functions
+
 ## `pww` similar to `pw` but from wsl
 ## Usage: `pww`
 function pww() {
@@ -453,7 +454,7 @@ function pww() {
 
 ## `ppw` similar to `pp` but from wsl
 ## Usage: `ppw`
-function ppw {
+function ppw() {
     local home_path="$(_wslHomePath)"
 
     cd "${home_path}/code/personal" || return 1
