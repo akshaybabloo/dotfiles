@@ -25,24 +25,16 @@ log_warning() {
     echo -e "${YELLOW}⚠ $1${NC}"
 }
 
-# Parse flags
-ALLOW_ROOT=false
-for arg in "$@"; do
-    case "$arg" in
-        --allow-root)
-            ALLOW_ROOT=true
-            ;;
-    esac
-done
-
 # Check if running as root
-if [[ "$EUID" -eq 0 && "$ALLOW_ROOT" != true ]]; then
-    log_error "Do not run this script as root! If you know what you're doing, please run the script with --allow-root flag."
-    exit 1
-fi
-
-if [[ "$EUID" -eq 0 && "$ALLOW_ROOT" == true ]]; then
-    log_warning "Running as root because --allow-root was provided"
+if [[ "$EUID" -eq 0 ]]; then
+    log_warning "You are running this script as root."
+    echo -n "Are you sure you want to continue? (y/N): "
+    read -r response
+    if [[ ! "$response" =~ ^[Yy]$ ]]; then
+        log_info "Aborting"
+        exit 1
+    fi
+    log_warning "Continuing as root"
 fi
 
 # Get script directory
