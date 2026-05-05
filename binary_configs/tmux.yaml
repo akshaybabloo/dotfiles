@@ -9,4 +9,4 @@ files:
     copyIt: true
     versionCommand:
       args: "-V"
-      regexVersion: "\\d+\\.\\d+\\.\\d+"
+      regexVersion: "\\d+(?:\\.\\d+)+[a-z]?"
