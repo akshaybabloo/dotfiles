@@ -10,3 +10,7 @@ files:
     versionCommand:
       args: "--version"
       regexVersion: "\\d+\\.\\d+\\.\\d+"
+download:
+  linux:
+    amd64:
+      fileName: "zellij-x86_64-unknown-linux-musl.tar.gz"
