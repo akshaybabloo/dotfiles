@@ -81,31 +81,47 @@ detect_package_manager() {
 
 # Install basic dependencies
 install_dependencies() {
+    local deps=(curl git jq pv)
+    local missing=()
+
+    for dep in "${deps[@]}"; do
+        if command -v "$dep" &>/dev/null; then
+            log_info "$dep is already installed"
+        else
+            missing+=("$dep")
+        fi
+    done
+
+    if [[ ${#missing[@]} -eq 0 ]]; then
+        log_success "All dependencies already installed"
+        return 0
+    fi
+
     local pkg_manager
     pkg_manager=$(detect_package_manager)
-    
+
     log_info "Detected package manager: $pkg_manager"
-    log_info "Installing basic dependencies..."
-    
+    log_info "Installing missing dependencies: ${missing[*]}"
+
     case "$pkg_manager" in
         apt)
-            sudo apt update && sudo apt install -y curl git jq pv
+            sudo apt update && sudo apt install -y "${missing[@]}"
             ;;
         dnf|yum)
-            sudo "$pkg_manager" install -y curl git jq pv
+            sudo "$pkg_manager" install -y "${missing[@]}"
             ;;
         pacman)
-            sudo pacman -Sy --noconfirm curl git jq pv
+            sudo pacman -Sy --noconfirm "${missing[@]}"
             ;;
         brew)
-            brew install curl git jq pv
+            brew install "${missing[@]}"
             ;;
         *)
             log_error "Unsupported package manager"
             return 1
             ;;
     esac
-    
+
     log_success "Dependencies installed"
 }
 
@@ -178,25 +194,20 @@ run_updater() {
     fi
     
     echo ""
-    log_info "Do you want to run the updater script?"
-    select yn in "Yes" "No"; do
-        case $yn in
-            Yes)
-                log_info "Running updater..."
-                if bash "$updater_script"; then
-                    log_success "Updater completed successfully"
-                else
-                    log_error "Updater failed"
-                    return 1
-                fi
-                break
-                ;;
-            No)
-                log_info "Skipping updater"
-                break
-                ;;
-        esac
-    done
+    echo -n "Do you want to run the updater script? (Y/n): "
+    read -r response
+    if [[ "$response" =~ ^[Nn]$ ]]; then
+        log_info "Skipping updater"
+        return 0
+    fi
+
+    log_info "Running updater..."
+    if bash "$updater_script"; then
+        log_success "Updater completed successfully"
+    else
+        log_error "Updater failed"
+        return 1
+    fi
 }
 
 # Main installation
