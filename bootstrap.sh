@@ -90,20 +90,24 @@ install_dependencies() {
     fi
 
     local pkg_manager
-    pkg_manager=$(detect_package_manager)
+    pkg_manager=$(detect_package_manager) || return 1
+
+    # Skip sudo when running as root (e.g. Docker)
+    local sudo_cmd=""
+    [[ "$EUID" -ne 0 ]] && sudo_cmd="sudo"
 
     log_info "Detected package manager: $pkg_manager"
     log_info "Installing missing dependencies: ${missing[*]}"
 
     case "$pkg_manager" in
         apt)
-            sudo apt update && sudo apt install -y "${missing[@]}"
+            $sudo_cmd apt update && $sudo_cmd apt install -y "${missing[@]}"
             ;;
         dnf|yum)
-            sudo "$pkg_manager" install -y "${missing[@]}"
+            $sudo_cmd "$pkg_manager" install -y "${missing[@]}"
             ;;
         pacman)
-            sudo pacman -Sy --noconfirm "${missing[@]}"
+            $sudo_cmd pacman -Sy --noconfirm "${missing[@]}"
             ;;
         brew)
             brew install "${missing[@]}"
@@ -113,6 +117,19 @@ install_dependencies() {
             return 1
             ;;
     esac
+
+    # Verify each previously-missing dep is now installed
+    local still_missing=()
+    for dep in "${missing[@]}"; do
+        if ! command -v "$dep" &>/dev/null; then
+            still_missing+=("$dep")
+        fi
+    done
+
+    if [[ ${#still_missing[@]} -gt 0 ]]; then
+        log_error "Failed to install: ${still_missing[*]}"
+        return 1
+    fi
 
     log_success "Dependencies installed"
 }
