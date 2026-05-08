@@ -1,6 +1,11 @@
 packages:
   - docs
 
+allowBuilds:
+  esbuild: true
+  sharp: true
+  workerd: true
+
 onlyBuiltDependencies:
   - esbuild
   - sharp
