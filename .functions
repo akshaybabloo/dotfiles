@@ -230,7 +230,7 @@ function targz() {
 ## Usage: `server [path] [port]`
 function server() {
     local path="${1:-.}"
-    local port="${2:-8000}"
+    local port="${2:-52600}"
     
     sleep 1 && open "http://localhost:${port}/" &
 
