@@ -373,12 +373,6 @@ function snapc() {
         return
     fi
 
-    # Check if sudo is used
-    if [[ $EUID -ne 0 ]]; then
-        echoerr "Error: Please run as root"
-        return
-    fi
-
     # Taken from - https://www.debugpoint.com/clean-up-snap/
     # Remove old revisions of snaps
     # CLOSE ALL SNAPS BEFORE RUNNING THIS
@@ -386,7 +380,7 @@ function snapc() {
 
     snap list --all | awk '/disabled/{print $1, $3}' |
         while read snapname revision; do
-            snap remove "$snapname" --revision="$revision"
+            sudo_if_needed snap remove "$snapname" --revision="$revision"
         done
 }
 
