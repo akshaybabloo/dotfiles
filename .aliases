@@ -113,6 +113,8 @@ alias fz="fzf --preview 'bat --color=always {}' --preview-window '~3' --bind 'en
 
 ## Upgrades system libraries
 alias sup="sudo apt update && sudo apt upgrade"
+## Autoremove and clean any dangling packages
+alias supc="sudo apt autoremove && sudo apt auto-clean"
 
 ## ::: danger Requirements
 ## This alias requires `httpie`, see https://httpie.io.
