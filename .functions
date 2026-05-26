@@ -436,6 +436,60 @@ function wrap_text() {
     fi
 }
 
+## `lsinotify` lists inotify watches for each process and displays them in a formatted table
+## Usage: `lsinotify`
+lsinotify() {
+    local SUDO=""
+    if [ "$EUID" -ne 0 ]; then
+        SUDO="sudo"
+        # Prime sudo up-front so the password prompt doesn't appear mid-output
+        sudo -v || return 1
+    fi
+
+    printf "%-7s %-25s %s\n" "PID" "COMMAND" "TOTAL WATCHES"
+    printf "%-7s %-25s -------------\n" "------" "-------------------------"
+
+    local max_watches=""
+    [ -r /proc/sys/fs/inotify/max_user_watches ] && \
+        max_watches=$(cat /proc/sys/fs/inotify/max_user_watches)
+
+    $SUDO grep -c "^inotify" /proc/*/fdinfo/* 2>/dev/null \
+        | awk -F: '$2 > 0' \
+        | while IFS=: read -r fd_path watches; do
+            local pid=${fd_path#/proc/}
+            pid=${pid%%/*}
+            local cmd=$(ps -p "$pid" -o comm= 2>/dev/null)
+            [ -z "$cmd" ] && continue
+            echo "$pid|$cmd|$watches"
+        done \
+        | awk -F'|' -v max="$max_watches" '
+            { watches[$1] += $3; cmd[$1] = $2 }
+            END {
+                n = 0
+                for (p in watches) {
+                    n++
+                    rows[n] = watches[p] "|" p "|" cmd[p]
+                    total += watches[p]
+                }
+                # sort rows desc by watches
+                for (i = 1; i <= n; i++)
+                    for (j = i + 1; j <= n; j++) {
+                        split(rows[i], a, "|"); split(rows[j], b, "|")
+                        if (a[1] + 0 < b[1] + 0) { tmp = rows[i]; rows[i] = rows[j]; rows[j] = tmp }
+                    }
+                for (i = 1; i <= n; i++) {
+                    split(rows[i], a, "|")
+                    printf "%-7s %-25s %'"'"'d\n", a[2], a[3], a[1]
+                }
+                printf "%-7s %-25s -------------\n", "------", "-------------------------"
+                if (max != "")
+                    printf "%-7s %-25s %'"'"'d / %'"'"'d\n", "TOTAL", n " processes", total, max
+                else
+                    printf "%-7s %-25s %'"'"'d\n", "TOTAL", n " processes", total
+            }
+        '
+}
+
 ## h2: WSL-Specific Functions
 
 ## `pww` similar to `pw` but from wsl
