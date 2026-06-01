@@ -1604,131 +1604,109 @@ function dotub() {
 ## `dotls` lists all the aliases and functions in the dotfiles with their descriptions
 ## Usage: `dotls`
 function dotls() {
+    local script_dir
     script_dir=$(_whereami)
-    
-    # Color codes for backtick highlighting
-    local CYAN='\033[0;36m'
-    local NC='\033[0m'
-    
-    # Helper function to highlight backticks
-    highlight_backticks() {
-        local text="$1"
-        # Replace `text` with colored version (remove backticks and add color)
-        echo "$text" | sed -E "s/\`([^\`]+)\`/$(printf "${CYAN}")\1$(printf "${NC}")/g"
-    }
-    
-    # Get terminal width, default to 100 if not available
+
+    # Color codes
+    local BOLD=$'\033[1m'
+    local DIM=$'\033[2m'
+    local CYAN=$'\033[0;36m'
+    local MAGENTA=$'\033[0;35m'
+    local YELLOW=$'\033[0;33m'
+    local BLUE=$'\033[1;94m'
+    local NC=$'\033[0m'
+
+    # Terminal width
     local term_width=${COLUMNS:-$(tput cols 2>/dev/null || echo 100)}
     local name_width=22
     local desc_width=$((term_width - name_width - 4))
 
-    _blueText "Aliases"
-    echo ""
-    
-    # Process aliases with ## descriptions
-    local description=""
-    
-    while IFS= read -r line; do
-        # Check if line is a ## comment (description)
-        if [[ $line == \#\#* ]]; then
-            # Extract comment text (skip ## markers and special patterns)
-            if [[ ! $line =~ ^##\ (h2:|Usage:|Options:|Examples:) ]]; then
-                desc=$(echo "$line" | sed -E 's/^##[[:space:]]*//')
-                # Skip ::: blocks
-                if [[ ! $desc =~ ^::: ]]; then
-                    if [[ -n $description ]]; then
-                        description="$description $desc"
-                    else
-                        description="$desc"
+    # Inner renderer: walks a file, emits sections from `## h2:` markers
+    # and entries matched by the given grep pattern + name extractor.
+    #   $1: file path
+    #   $2: 'alias' or 'function' (governs entry detection + fallback display)
+    _dotls_render() {
+        local file=$1 kind=$2
+        local description=""
+        local h2_re='^##[[:space:]]+h2:[[:space:]]*(.+)$'
+        local fn_re='^function[[:space:]]+([^_][^(]*)\(\)'
+
+        while IFS= read -r line; do
+            # Section header: `## h2: Some Section`
+            if [[ $line =~ $h2_re ]]; then
+                printf '\n  %s%s▸ %s%s\n' "$BOLD" "$YELLOW" "${BASH_REMATCH[1]}" "$NC"
+                printf '  %s%s%s\n' "$DIM" "$(printf '%.0s─' $(seq 1 $((term_width - 4))))" "$NC"
+                description=""
+                continue
+            fi
+
+            # Description comment line (`##` but not h2:/Usage:/Options:/Examples:/:::)
+            if [[ $line == \#\#* ]]; then
+                if [[ ! $line =~ ^##\ (Usage:|Options:|Examples:) ]]; then
+                    local desc
+                    desc=$(echo "$line" | sed -E 's/^##[[:space:]]*//')
+                    if [[ ! $desc =~ ^::: ]]; then
+                        if [[ -n $description ]]; then
+                            description="$description $desc"
+                        else
+                            description="$desc"
+                        fi
                     fi
                 fi
+                continue
             fi
-        # Check if line is an alias definition
-        elif [[ $line == alias* ]]; then
-            # Extract alias name
-            alias_name=$(echo "$line" | sed -E 's/alias ([^=]+)=.*/\1/')
-            
-            printf "  %-${name_width}s" "$alias_name"
-            
-            if [[ -n $description ]]; then
-                # Highlight backticks first
-                local highlighted_desc=$(highlight_backticks "$description")
-                # Use fmt to wrap text and indent continuation lines
-                if command -v fmt &> /dev/null; then
-                    echo -e "$highlighted_desc" | fmt -w "$desc_width" | \
-                        awk -v width="$name_width" 'NR==1 {print} NR>1 {printf "%*s%s\n", width+2, "", $0}'
-                else
-                    echo -e "$highlighted_desc"
-                fi
-            else
-                # If no description, show the alias definition
+
+            # Entry line
+            local name=""
+            local fallback=""
+            if [[ $kind == "alias" && $line == alias* ]]; then
+                name=$(echo "$line" | sed -E 's/alias ([^=]+)=.*/\1/')
+                local alias_def
                 alias_def=$(echo "$line" | sed -E 's/alias [^=]+=(.*)$/\1/')
-                # Remove inline comments (single #)
                 if [[ $alias_def == *"#"* ]]; then
-                    alias_value=$(echo "$alias_def" | sed -E 's/([^#]+)#.*/\1/' | xargs)
+                    fallback=$(echo "$alias_def" | sed -E 's/([^#]+)#.*/\1/' | xargs)
                 else
-                    alias_value="$alias_def"
+                    fallback="$alias_def"
                 fi
-                echo "$alias_value"
+            elif [[ $kind == "function" && $line =~ $fn_re ]]; then
+                name="${BASH_REMATCH[1]}"
             fi
-            
-            # Reset description for next alias
-            description=""
-        # If we hit a single # comment or non-blank line, reset description
-        elif [[ $line == \#* ]] || [[ -n $line && ! $line =~ ^[[:space:]]*$ ]]; then
-            description=""
-        fi
-    done < "$script_dir/.aliases"
 
-    echo -e "\n"
-
-    _blueText "Functions"
-    echo ""
-    
-    # Process functions with descriptions from ## comments above them
-    local description=""
-    
-    while IFS= read -r line; do
-        # Check if line is a ## comment (description)
-        if [[ $line == \#\#* ]]; then
-            # Extract comment text (skip ## markers and special patterns)
-            if [[ ! $line =~ ^##\ (h2:|Usage:|Options:|Examples:) ]]; then
-                desc=$(echo "$line" | sed -E 's/^##[[:space:]]*//')
-                # Skip ::: blocks
-                if [[ ! $desc =~ ^::: ]]; then
-                    if [[ -n $description ]]; then
-                        description="$description $desc"
+            if [[ -n $name ]]; then
+                printf '  %s%-*s%s' "$CYAN" "$name_width" "$name" "$NC"
+                local text="${description:-$fallback}"
+                if [[ -n $text ]]; then
+                    # Highlight backticks, then dim the rest
+                    local highlighted
+                    highlighted=$(echo "$text" | sed -E "s/\`([^\`]+)\`/${MAGENTA}\1${DIM}/g")
+                    if command -v fmt &> /dev/null; then
+                        printf '%s%s%s\n' "$DIM" "$highlighted" "$NC" \
+                            | fmt -w "$desc_width" \
+                            | awk -v w="$name_width" 'NR==1 {print} NR>1 {printf "%*s%s\n", w+2, "", $0}'
                     else
-                        description="$desc"
+                        printf '%s%s%s\n' "$DIM" "$highlighted" "$NC"
                     fi
-                fi
-            fi
-        # Check if line is a function definition
-        elif [[ $line == function\ [^_]* ]]; then
-            func_name=$(echo "$line" | sed -E 's/function ([^(]+)\(\).*/\1/')
-            
-            printf "  %-${name_width}s" "$func_name"
-            
-            if [[ -n $description ]]; then
-                # Highlight backticks first
-                local highlighted_desc=$(highlight_backticks "$description")
-                # Use fmt to wrap text and indent continuation lines
-                if command -v fmt &> /dev/null; then
-                    echo -e "$highlighted_desc" | fmt -w "$desc_width" | \
-                        awk -v width="$name_width" 'NR==1 {print} NR>1 {printf "%*s%s\n", width+2, "", $0}'
                 else
-                    echo -e "$highlighted_desc"
+                    echo ""
                 fi
-            else
-                echo ""
+                description=""
+                continue
             fi
-            
-            # Reset description for next function
-            description=""
-        # If we hit a single # comment or non-blank line, reset description
-        elif [[ $line == \#* ]] || [[ -n $line && ! $line =~ ^[[:space:]]*$ ]]; then
-            description=""
-        fi
-    done < "$script_dir/.functions"
+
+            # Any other non-blank, non-`##` content resets the description buffer
+            if [[ -n $line && ! $line =~ ^[[:space:]]*$ ]]; then
+                description=""
+            fi
+        done < "$file"
+    }
+
+    printf '\n%s━━━ Aliases ━━━%s\n' "$BLUE" "$NC"
+    _dotls_render "$script_dir/.aliases" alias
+
+    printf '\n\n%s━━━ Functions ━━━%s\n' "$BLUE" "$NC"
+    _dotls_render "$script_dir/.functions" function
+
+    echo ""
+    unset -f _dotls_render
 }
 
