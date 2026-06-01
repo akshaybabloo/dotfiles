@@ -690,8 +690,10 @@ function sd() {
 ## This function requires `7zzs`, see https://www.7-zip.org/download.html
 ## :::
 ## `7zc` creates a 7Zip archive using the LZMA2 algorithm
-## Usage: `7zc <directory> [-p] [-s <size>]` or `7zc <file1> <file2> ... <archive_name> [-p] [-s <size>]`
+## Usage: `7zc <file or directory> [file2] [dir2] ... [-n <name>] [-p] [-s <size>] [-f]`
 ## Options:
+##   `-n`, `--name <name>`    Archive name (without extension). Required when archiving multiple items; defaults to the single item's basename otherwise.<br>
+##   `-f`, `--force`          Skip the confirmation prompt.<br>
 ##   `-p`              Prompt for password to encrypt the archive<br>
 ##   `-s <size>`       Split archive into parts of specified size. Supports `b` (bytes)/`k` (kilobytes)/`m` (megabytes)/`g` (gigabytes) units (e.g., `-s 500m`, `-s 1g`, `-s 2048k`). Defaults to MB if no unit specified.
 function 7zc() {
@@ -701,21 +703,28 @@ function 7zc() {
         return 1
     fi
 
-    # Check if arguments are provided
-    if [[ -z $1 ]]; then
-        echoerr "Error: No arguments provided."
-        echoerr "Usage: 7zc <directory> [-p] [-s <size>] OR 7zc <file1> <file2> ... <archive_name> [-p] [-s <size>]"
-        return 1
-    fi
-
-    # Parse flags
+    local targets=()
+    local archive_name=""
     local use_password=false
     local password=""
     local split_size=""
-    local args=()
-    
+    local force=false
+
+    # Parse arguments
     while [[ $# -gt 0 ]]; do
         case $1 in
+            -n|--name)
+                if [[ -z $2 ]]; then
+                    echoerr "Error: -n/--name requires an argument"
+                    return 1
+                fi
+                archive_name=$2
+                shift 2
+                ;;
+            -f|--force)
+                force=true
+                shift
+                ;;
             -p)
                 use_password=true
                 shift
@@ -725,17 +734,12 @@ function 7zc() {
                     echoerr "Error: -s requires a size argument"
                     return 1
                 fi
-                
+
                 # Parse size with optional unit (b, k, m, g)
                 if [[ $2 =~ ^([0-9]+)([bkmg])?$ ]]; then
                     local size_num="${BASH_REMATCH[1]}"
                     local size_unit="${BASH_REMATCH[2]}"
-                    
-                    # Default to MB if no unit specified
-                    if [[ -z "$size_unit" ]]; then
-                        size_unit="m"
-                    fi
-                    
+                    [[ -z "$size_unit" ]] && size_unit="m"
                     split_size="${size_num}${size_unit}"
                 else
                     echoerr "Error: -s requires a valid size (e.g., 500, 500m, 1g, 2048k)"
@@ -744,115 +748,103 @@ function 7zc() {
                 shift 2
                 ;;
             *)
-                args+=("$1")
+                targets+=("$1")
                 shift
                 ;;
         esac
     done
-    
-    # Restore arguments without flags
-    set -- "${args[@]}"
-    
-    # Check if arguments remain after flag parsing
-    if [[ -z $1 ]]; then
-        echoerr "Error: No files or directories provided."
-        echoerr "Usage: 7zc <directory> [-p] [-s <size>] OR 7zc <file1> <file2> ... <archive_name> [-p] [-s <size>]"
+
+    # Check if any targets are provided
+    if [[ ${#targets[@]} -eq 0 ]]; then
+        echoerr "Error: No target specified."
+        echoerr "Usage: 7zc <file or directory> [file2] [dir2] ... [-n <name>] [-p] [-s <size>]"
         return 1
+    fi
+
+    # Validate all targets exist
+    local invalid_targets=()
+    for target in "${targets[@]}"; do
+        [[ ! -e "$target" ]] && invalid_targets+=("$target")
+    done
+
+    if [[ ${#invalid_targets[@]} -gt 0 ]]; then
+        echoerr "Error: The following targets were not found:"
+        for target in "${invalid_targets[@]}"; do
+            echoerr "  - $target"
+        done
+        return 1
+    fi
+
+    # Determine archive name
+    if [[ -z "$archive_name" ]]; then
+        if [[ ${#targets[@]} -eq 1 ]]; then
+            archive_name=$(basename "${targets[0]%/}")
+        else
+            echoerr "Error: -n/--name is required when archiving multiple items."
+            echoerr "Example: 7zc ${targets[0]} ${targets[1]} -n my-archive"
+            return 1
+        fi
+    fi
+
+    # Strip trailing .7z if user passed it
+    archive_name="${archive_name%.7z}"
+    local output="${archive_name}.7z"
+
+    # Refuse to overwrite an existing archive
+    if [[ -e "$output" ]]; then
+        echoerr "Error: $output already exists. Choose a different name with -n."
+        return 1
+    fi
+
+    # List what's being archived
+    if [[ -n "$split_size" ]]; then
+        echo "Compressing ${#targets[@]} item(s) into $output (split: ${split_size}):"
+    else
+        echo "Compressing ${#targets[@]} item(s) into $output:"
+    fi
+    for target in "${targets[@]}"; do
+        local item_type="file"
+        [[ -d "$target" ]] && item_type="directory"
+        echo "  - $target ($item_type)"
+    done
+
+    # Confirmation prompt (unless -f flag is used)
+    if [[ "$force" == false ]]; then
+        read -p "Continue? [Y/n]: " confirmation
+        confirmation=${confirmation:-Y}
+        confirmation=$(echo "$confirmation" | tr '[:upper:]' '[:lower:]')
+        if [[ "$confirmation" != "y" && "$confirmation" != "yes" ]]; then
+            echo "Operation cancelled."
+            return 0
+        fi
     fi
 
     # Handle password prompt if -p flag was set
     if [[ "$use_password" == true ]]; then
-        # Prompt for password
         read -s -p "Enter password: " password
-        echo  # New line after password input
-        
+        echo
         if [[ -z "$password" ]]; then
             echoerr "Error: Password cannot be empty"
             return 1
         fi
-        
         read -s -p "Confirm password: " password_confirm
-        echo  # New line after confirmation
-        
+        echo
         if [[ "$password" != "$password_confirm" ]]; then
             echoerr "Error: Passwords do not match"
             return 1
         fi
     fi
 
-    # Single directory mode: if only one argument and it's a directory
-    if [[ $# -eq 1 && -d $1 ]]; then
-        local dir_name=$(basename "${1%/}")
-        local archive_name="${dir_name}.7z"
-        
-        # Check for existing archive
-        if [[ -f "$archive_name" ]]; then
-            echoerr "Error: $archive_name already exists"
-            return 1
-        fi
-        
-        if [[ -n "$split_size" ]]; then
-            echo "Compressing directory '$1' to '$archive_name' (split: ${split_size})..."
-        else
-            echo "Compressing directory '$1' to '$archive_name'..."
-        fi
-        
-        # Build 7z command with optional split and password
-        local cmd="7zzs a -t7z -m0=lzma2 -mx9 -mfb=64 -md=32m -ms=on"
-        [[ -n "$split_size" ]] && cmd="$cmd -v$split_size"
-        [[ "$use_password" == true ]] && cmd="$cmd -mhe=on -p\"$password\""
-        cmd="$cmd \"$archive_name\" \"$1\""
-        
-        eval $cmd
-        return $?
-    fi
-
-    # Multiple files/directories mode
-    if [[ $# -lt 2 ]]; then
-        echoerr "Error: Please provide files/directories and an archive name."
-        echoerr "Usage: 7zc <file1> <file2> ... <archive_name> [-p] [-s <size>]"
-        return 1
-    fi
-
-    # Get archive name (last argument) and strip .7z if provided
-    local archive_name="${@: -1}"
-    archive_name="${archive_name%.7z}.7z"
-    
-    # Check for existing archive
-    if [[ -f "$archive_name" ]]; then
-        echoerr "Error: $archive_name already exists"
-        return 1
-    fi
-    
-    # Get all items (all arguments except the last one)
-    local items=("${@:1:$#-1}")
-    
-    # Verify all source items exist
-    for item in "${items[@]}"; do
-        if [[ ! -e "$item" ]]; then
-            echoerr "Error: File or directory '$item' does not exist"
-            return 1
-        fi
-    done
-    
-    if [[ -n "$split_size" ]]; then
-        echo "Compressing ${#items[@]} item(s) to '$archive_name' (split: ${split_size})..."
-    else
-        echo "Compressing ${#items[@]} item(s) to '$archive_name'..."
-    fi
-    
     # Build 7z command with optional split and password
     # Using maximum compression: LZMA2, ultra (-mx9), 64 word size, 32MB dictionary, solid archive
     local cmd="7zzs a -t7z -m0=lzma2 -mx9 -mfb=64 -md=32m -ms=on"
     [[ -n "$split_size" ]] && cmd="$cmd -v$split_size"
     [[ "$use_password" == true ]] && cmd="$cmd -mhe=on -p\"$password\""
-    cmd="$cmd \"$archive_name\""
-    
-    # Add all items to the command
-    for item in "${items[@]}"; do
-        cmd="$cmd \"$item\""
+    cmd="$cmd \"$output\""
+    for target in "${targets[@]}"; do
+        cmd="$cmd \"$target\""
     done
-    
+
     eval $cmd
     return $?
 }
@@ -1058,32 +1050,112 @@ function 7zx() {
 ## ::: danger Requirements
 ## This function requires `zstd`. Install it from `sudo apt install zstd` or download it from [GitHub Release](https://github.com/facebook/zstd/releases).
 ## :::
-## `zc` compresses a file or directory using zstd with tar
-## Usage: `zc <file or directory>`
+## `zc` compresses one or more files/directories into a single zstd-compressed tar archive
+## Usage: `zc <file or directory> [file2] [dir2] ... [-n <name>] [-f]`
+## Options:
+##   `-n`, `--name <name>`    Archive name (without extension). Required when archiving multiple items; defaults to the single item's basename otherwise.<br>
+##   `-f`, `--force`          Skip the confirmation prompt.
 function zc() {
-    local file_folder=$1
-    local file_folder_name=$(basename "$file_folder")
+    local targets=()
+    local archive_name=""
+    local force=false
 
-    # Check if the first argument is not empty
-    if [[ -z $file_folder ]]; then
-        echoerr "Error: No arguments provided."
-        return
+    # Parse arguments
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -n|--name)
+                if [[ -z $2 ]]; then
+                    echoerr "Error: -n/--name requires an argument"
+                    return 1
+                fi
+                archive_name=$2
+                shift 2
+                ;;
+            -f|--force)
+                force=true
+                shift
+                ;;
+            *)
+                targets+=("$1")
+                shift
+                ;;
+        esac
+    done
+
+    # Check if any targets are provided
+    if [[ ${#targets[@]} -eq 0 ]]; then
+        echoerr "Error: No target specified."
+        echoerr "Usage: zc <file or directory> [file2] [dir2] ... [-n <name>]"
+        return 1
     fi
 
     # Check if zstd is installed
     if ! command -v zstd &> /dev/null; then
         echoerr "Error: zstd not found."
-        return
+        return 1
     fi
 
-    # Check if the file or directory exists
-    if [[ ! -e $file_folder ]]; then
-        echoerr "Error: $file_folder not found."
-        return
+    # Validate all targets exist
+    local invalid_targets=()
+    for target in "${targets[@]}"; do
+        [[ ! -e "$target" ]] && invalid_targets+=("$target")
+    done
+
+    if [[ ${#invalid_targets[@]} -gt 0 ]]; then
+        echoerr "Error: The following targets were not found:"
+        for target in "${invalid_targets[@]}"; do
+            echoerr "  - $target"
+        done
+        return 1
     fi
 
-    # Compress the file or directory
-    tar --use-compress-program="zstd -T0 -19" -cf "${file_folder_name}.tar.zst" "$file_folder"
+    # Determine archive name
+    if [[ -z "$archive_name" ]]; then
+        if [[ ${#targets[@]} -eq 1 ]]; then
+            archive_name=$(basename "${targets[0]}")
+        else
+            echoerr "Error: -n/--name is required when archiving multiple items."
+            echoerr "Example: zc ${targets[0]} ${targets[1]} -n my-archive"
+            return 1
+        fi
+    fi
+
+    local output="${archive_name}.tar.zst"
+
+    # Refuse to overwrite an existing archive
+    if [[ -e "$output" ]]; then
+        echoerr "Error: $output already exists. Choose a different name with -n."
+        return 1
+    fi
+
+    # List what's being archived
+    echo "Compressing ${#targets[@]} item(s) into $output:"
+    for target in "${targets[@]}"; do
+        local item_type="file"
+        [[ -d "$target" ]] && item_type="directory"
+        echo "  - $target ($item_type)"
+    done
+
+    # Confirmation prompt (unless -f flag is used)
+    if [[ "$force" == false ]]; then
+        read -p "Continue? [Y/n]: " confirmation
+        confirmation=${confirmation:-Y}
+        confirmation=$(echo "$confirmation" | tr '[:upper:]' '[:lower:]')
+        if [[ "$confirmation" != "y" && "$confirmation" != "yes" ]]; then
+            echo "Operation cancelled."
+            return 0
+        fi
+    fi
+
+    if command -v pv &> /dev/null; then
+        local total_size=0
+        for target in "${targets[@]}"; do
+            total_size=$((total_size + $(du -sb "$target" | awk '{print $1}')))
+        done
+        tar -cf - "${targets[@]}" | pv -s "$total_size" | zstd -T0 -19 --no-progress -q -o "$output"
+    else
+        tar --use-compress-program="zstd -T0 -19" -cf "$output" "${targets[@]}"
+    fi
 }
 
 ## ::: danger Requirements
@@ -1120,74 +1192,107 @@ function zx() {
     $sudo_cmd tar --use-compress-program="zstd -d" -xf "$file"
 }
 
-## `tgc` compresses a file or directory using tar with gzip
-## Usage: `tgc <file or directory>` or `tgc <file1> <file2> ... <archive_name>`
+## `tgc` compresses one or more files/directories into a single gzip-compressed tar archive
+## Usage: `tgc <file or directory> [file2] [dir2] ... [-n <name>] [-f]`
+## Options:
+##   `-n`, `--name <name>`    Archive name (without extension). Required when archiving multiple items; defaults to the single item's basename otherwise.<br>
+##   `-f`, `--force`          Skip the confirmation prompt.
 function tgc() {
-    # Check if arguments are provided
-    if [[ -z $1 ]]; then
-        echoerr "Error: No arguments provided."
-        echoerr "Usage: tgc <file or directory> OR tgc <file1> <file2> ... <archive_name>"
-        return 1
-    fi
+    local targets=()
+    local archive_name=""
+    local force=false
 
-    # Single file/directory mode
-    if [[ $# -eq 1 ]]; then
-        local file_folder=$1
-        local file_folder_name=$(basename "$file_folder")
-
-        if [[ ! -e $file_folder ]]; then
-            echoerr "Error: $file_folder not found."
-            return 1
-        fi
-
-        if command -v pv &> /dev/null; then
-            local total_size
-            total_size=$(du -sb "$file_folder" | awk '{print $1}')
-            tar -cf - "$file_folder" | pv -s "$total_size" | gzip > "${file_folder_name}.tar.gz"
-        else
-            tar -czf "${file_folder_name}.tar.gz" "$file_folder"
-        fi
-        return $?
-    fi
-
-    # Multiple items mode: last argument is the archive name
-    if [[ $# -lt 2 ]]; then
-        echoerr "Error: Please provide files/directories and an archive name."
-        echoerr "Usage: tgc <file1> <file2> ... <archive_name>"
-        return 1
-    fi
-
-    # Get archive name (last argument) and strip .tar.gz if provided
-    local archive_name="${@: -1}"
-    archive_name="${archive_name%.tar.gz}.tar.gz"
-
-    # Check for existing archive
-    if [[ -f "$archive_name" ]]; then
-        echoerr "Error: $archive_name already exists"
-        return 1
-    fi
-
-    # Get all items (all arguments except the last one)
-    local items=("${@:1:$#-1}")
-
-    # Verify all source items exist
-    for item in "${items[@]}"; do
-        if [[ ! -e "$item" ]]; then
-            echoerr "Error: '$item' not found."
-            return 1
-        fi
+    # Parse arguments
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -n|--name)
+                if [[ -z $2 ]]; then
+                    echoerr "Error: -n/--name requires an argument"
+                    return 1
+                fi
+                archive_name=$2
+                shift 2
+                ;;
+            -f|--force)
+                force=true
+                shift
+                ;;
+            *)
+                targets+=("$1")
+                shift
+                ;;
+        esac
     done
 
-    echo "Compressing ${#items[@]} item(s) to '$archive_name'..."
+    # Check if any targets are provided
+    if [[ ${#targets[@]} -eq 0 ]]; then
+        echoerr "Error: No target specified."
+        echoerr "Usage: tgc <file or directory> [file2] [dir2] ... [-n <name>]"
+        return 1
+    fi
+
+    # Validate all targets exist
+    local invalid_targets=()
+    for target in "${targets[@]}"; do
+        [[ ! -e "$target" ]] && invalid_targets+=("$target")
+    done
+
+    if [[ ${#invalid_targets[@]} -gt 0 ]]; then
+        echoerr "Error: The following targets were not found:"
+        for target in "${invalid_targets[@]}"; do
+            echoerr "  - $target"
+        done
+        return 1
+    fi
+
+    # Determine archive name
+    if [[ -z "$archive_name" ]]; then
+        if [[ ${#targets[@]} -eq 1 ]]; then
+            archive_name=$(basename "${targets[0]%/}")
+        else
+            echoerr "Error: -n/--name is required when archiving multiple items."
+            echoerr "Example: tgc ${targets[0]} ${targets[1]} -n my-archive"
+            return 1
+        fi
+    fi
+
+    # Strip trailing .tar.gz if user passed it
+    archive_name="${archive_name%.tar.gz}"
+    local output="${archive_name}.tar.gz"
+
+    # Refuse to overwrite an existing archive
+    if [[ -e "$output" ]]; then
+        echoerr "Error: $output already exists. Choose a different name with -n."
+        return 1
+    fi
+
+    # List what's being archived
+    echo "Compressing ${#targets[@]} item(s) into $output:"
+    for target in "${targets[@]}"; do
+        local item_type="file"
+        [[ -d "$target" ]] && item_type="directory"
+        echo "  - $target ($item_type)"
+    done
+
+    # Confirmation prompt (unless -f flag is used)
+    if [[ "$force" == false ]]; then
+        read -p "Continue? [Y/n]: " confirmation
+        confirmation=${confirmation:-Y}
+        confirmation=$(echo "$confirmation" | tr '[:upper:]' '[:lower:]')
+        if [[ "$confirmation" != "y" && "$confirmation" != "yes" ]]; then
+            echo "Operation cancelled."
+            return 0
+        fi
+    fi
 
     if command -v pv &> /dev/null; then
         local total_size=0
-        for item in "${items[@]}"; do
-            total_size=$((total_size + $(du -sb "$item" | awk '{print $1}')))
+        for target in "${targets[@]}"; do
+            total_size=$((total_size + $(du -sb "$target" | awk '{print $1}')))
         done
-        tar -cf - "${items[@]}" | pv -s "$total_size" | gzip > "$archive_name"
+        tar -cf - "${targets[@]}" | pv -s "$total_size" | gzip > "$output"
     else
-        tar -czf "$archive_name" "${items[@]}"
+        tar -czf "$output" "${targets[@]}"
     fi
 }
 
