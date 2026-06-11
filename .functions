@@ -490,6 +490,30 @@ lsinotify() {
         '
 }
 
+## `count` counts files and directories for each path given. For a directory it prints the totals; for a file it prints its line count. Defaults to the current directory.
+## Usage: `count` or `count <directory>` or `count <file>` or `count *.js`
+function count() {
+    # Default to the current directory when no path is given.
+    (($# == 0)) && set -- .
+
+    local path
+    for path in "$@"; do
+        if [[ -d "$path" ]]; then
+            local total_files=$(find "$path" -type f | wc -l)
+            local total_dirs=$(find "$path" -mindepth 1 -type d | wc -l)
+            echo "$path:"
+            echo "  Total files: $total_files"
+            echo "  Total directories: $total_dirs"
+            echo "  Total: $((total_files + total_dirs))"
+        elif [[ -f "$path" ]]; then
+            echo "Lines in $path: $(wc -l < "$path")"
+        else
+            echoerr "Error: $path is not a valid file or directory."
+            return 1
+        fi
+    done
+}
+
 ## h2: WSL-Specific Functions
 
 ## `pww` similar to `pw` but from wsl
