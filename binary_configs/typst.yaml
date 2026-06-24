@@ -10,3 +10,7 @@ files:
     versionCommand:
       args: "--version"
       regexVersion: "\\d+\\.\\d+\\.\\d+"
+download:
+  linux:
+    amd64:
+      fileName: "typst-x86_64-unknown-linux-musl.tar.xz"
