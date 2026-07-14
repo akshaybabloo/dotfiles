@@ -61,6 +61,14 @@ function get_os_arch() {
     echo "$os $arch"
 }
 
+function curl_github() {
+    if [[ -n "${GITHUB_TOKEN:-}" ]]; then
+        curl -fsSL -H "Authorization: Bearer $GITHUB_TOKEN" "$@"
+    else
+        curl -fsSL "$@"
+    fi
+}
+
 function check_dependencies() {
     local missing_deps=()
     
@@ -117,7 +125,7 @@ function download_and_install_binstall() {
     
     # Fetch release info
     local json
-    if ! json=$(curl -fsSL "$GITHUB_API"); then
+    if ! json=$(curl_github "$GITHUB_API"); then
         log_error "Failed to fetch release information"
         return 1
     fi
@@ -148,7 +156,7 @@ function download_and_install_binstall() {
     # Download and extract
     local temp_archive="$INSTALL_DIR/temp_binstall.tar.gz"
     
-    if ! curl -fsSL "$download_url" -o "$temp_archive"; then
+    if ! curl_github "$download_url" -o "$temp_archive"; then
         log_error "Failed to download archive"
         rm -f "$temp_archive"
         return 1
@@ -183,7 +191,7 @@ function get_installed_version() {
 
 function get_latest_version() {
     local json
-    if ! json=$(curl -fsSL "$GITHUB_API"); then
+    if ! json=$(curl_github "$GITHUB_API"); then
         log_error "Failed to fetch latest version"
         return 1
     fi
