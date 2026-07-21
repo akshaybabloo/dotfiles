@@ -7,7 +7,7 @@
 	"name": "dotfiles-gollahalli-com",
 	"compatibility_date": "2025-09-27",
 	"assets": {
-		"directory": "./docs/.vitepress/dist"
+		"directory": "./docs/dist"
 	},
 	"observability": {
 		"enabled": false

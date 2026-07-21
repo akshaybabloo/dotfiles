@@ -5,7 +5,7 @@ set -euo pipefail  # Exit on error, undefined variables, pipe failures
 # Configuration
 readonly FUNCTIONS_FILE="${1:-.functions}"
 readonly ALIASES_FILE="${2:-.aliases}"
-readonly OUTPUT_DIR="${3:-$(pwd)/docs2/src/assets}"
+readonly OUTPUT_DIR="${3:-$(pwd)/docs/src/assets}"
 readonly BASE_URL="https://github.com/akshaybabloo/dotfiles/blob/main"
 
 function_content=""
