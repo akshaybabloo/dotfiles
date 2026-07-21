@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/akshaybabloo/binstall/refs/heads/main/schema.json
+name: "crush"
+description: "Glamourous agentic coding for all"
+url: "https://github.com/charmbracelet/crush"
+installLocation: "~/bin"
+files:
+  - fileName: "crush"
+    checkVersion: true
+    copyIt: true
+    versionCommand:
+      args: "--version"
+      regexVersion: "\\d+\\.\\d+\\.\\d+"
+download:
+  linux:
+    amd64:
+      fileName: "crush_{{.Version}}_Linux_x86_64.tar.gz"
