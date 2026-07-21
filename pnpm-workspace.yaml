@@ -1,5 +1,6 @@
 packages:
   - docs
+  - docs2
 
 allowBuilds:
   esbuild: true

@@ -1,0 +1,30 @@
+---
+title: Dotfiles
+description: A collection of my dotfiles and scripts.
+template: splash # Remove or comment out this line to display the site sidebar on this page.
+hero:
+  tagline: Use it at your own risk :p
+  actions:
+    - text: Install
+      link: /install
+      icon: right-arrow
+    - text: Read the Starlight docs
+      link: https://starlight.astro.build
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid, LinkButton } from '@astrojs/starlight/components';
+
+<CardGrid>
+	<Card title="Functions">
+		Helpful functions for your terminal.
+
+		<LinkButton href="/reference/functions" variant="primary">View Functions</LinkButton>
+	</Card>
+	<Card title="Aliases">
+		Few useful aliases for your terminal.
+
+		<LinkButton href="/reference/aliases" variant="primary">View Aliases</LinkButton>
+	</Card>
+</CardGrid>

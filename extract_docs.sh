@@ -5,7 +5,7 @@ set -euo pipefail  # Exit on error, undefined variables, pipe failures
 # Configuration
 readonly FUNCTIONS_FILE="${1:-.functions}"
 readonly ALIASES_FILE="${2:-.aliases}"
-readonly OUTPUT_DIR="${3:-$(pwd)/docs}"
+readonly OUTPUT_DIR="${3:-$(pwd)/docs2/src/assets}"
 readonly BASE_URL="https://github.com/akshaybabloo/dotfiles/blob/main"
 
 function_content=""
@@ -43,8 +43,13 @@ process_file() {
         return 1
     fi
 
+    # Add the import statement for the Badge component at the top of the content
+    content_var+="import { Badge } from '@astrojs/starlight/components';\n\n"
+    # Add the import statement for the Aside component at the top of the content
+    content_var+="import { Aside } from '@astrojs/starlight/components';\n\n"
+
     # Add a heading to the man page content
-    content_var+="# $type\n\n"
+    # content_var+="# $type\n\n" # Not Needed since because the title is already present in the mdx file
 
     # Determine the URL segment based on the content type
     local urlSegment="${file}"
@@ -116,8 +121,8 @@ main() {
         mkdir -p "$OUTPUT_DIR"
     fi
 
-    local functions_output="$OUTPUT_DIR/functions-auto.md"
-    local aliases_output="$OUTPUT_DIR/aliases-auto.md"
+    local functions_output="$OUTPUT_DIR/functions-auto.mdx"
+    local aliases_output="$OUTPUT_DIR/aliases-auto.mdx"
 
     # Check if output files exist and warn
     if [[ -f "$functions_output" ]] || [[ -f "$aliases_output" ]]; then

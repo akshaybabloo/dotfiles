@@ -36,53 +36,53 @@ alias pw="cd ~/code/work"
 alias g="git"
 ## Remove a directory and all files
 alias rmd="rm -rf"
-## ::: danger Requirements
+## <Aside type="danger" title="Requirements">
 ## This alias requires `7zzs`, see https://www.7-zip.org/download.html.
-## :::
+## </Aside>
 ## Extract/compress archives using 7-zip - use: `7z <file>`
 alias 7z="7zzs"
 
-## ::: danger Requirements
+## <Aside type="danger" title="Requirements">
 ## This alias requires `flatpak`, see https://flatpak.org/setup/ and `Papers`, see https://flathub.org/apps/org.gnome.Papers.
-## :::
+## </Aside>
 ## Open Papers
 alias papers="flatpak run org.gnome.Papers"
 
 ## h2: Shortcuts for Executables
 
-## ::: danger Requirements
+## <Aside type="danger" title="Requirements">
 ## This alias requires `eza`, see https://github.com/akshaybabloo/fs_rs.
-## :::
+## </Aside>
 ## Get the size of a file or directory
 alias fs="fs_rs"
 
 # Lists - make sure to have https://github.com/eza-community/eza in your path
-## ::: danger Requirements
+## <Aside type="danger" title="Requirements">
 ## This alias requires `eza`, see https://github.com/eza-community/eza.
-## :::
+## </Aside>
 ## List all files colorized using eza
 alias ls="eza -F"
-## ::: danger Requirements
+## <Aside type="danger" title="Requirements">
 ## This alias requires `eza`, see https://github.com/eza-community/eza.
-## :::
+## </Aside>
 ## List all files colorized in long format using eza
 alias ll="eza -alHhF --no-git"
 
-## ::: danger Requirements
+## <Aside type="danger" title="Requirements">
 ## This alias requires `cat`, see https://github.com/sharkdp/bat
-## :::
+## </Aside>
 ## Use bat instead of cat to output file contents
 alias cat="bat"
 
-## ::: danger Requirements
+## <Aside type="danger" title="Requirements">
 ## This alias requires `btop++`, see https://github.com/aristocratos/btop
-## :::
+## </Aside>
 ## Use btop instead of top to monitor system resources
 alias top="btop"
 
-## ::: danger Requirements
+## <Aside type="danger" title="Requirements">
 ## This alias required that you have JDK installed.
-## :::
+## </Aside>
 ## Use `jdk` to update the default Java version
 alias jdk="update-java-alternatives"
 
@@ -99,15 +99,15 @@ alias reload="source ~/.bashrc"
 ## Print each PATH entry on a separate line
 alias path='echo -e ${PATH//:/\\n}'
 
-## ::: danger Requirements
+## <Aside type="danger" title="Requirements">
 ## This alisa requires `adb`, see https://developer.android.com/studio.
-## :::
+## </Aside>
 ## Logcat with colors
 alias logcat='adb logcat -b all -v color "*:V" | tee ~/logcat_archive/$(date +"%Y-%m-%d_%H-%M-%S")'
 
-## ::: danger Requirements
+## <Aside type="danger" title="Requirements">
 ## This alisa requires `fzf`, see https://github.com/junegunn/fzf.
-## :::
+## </Aside>
 ## Fuzzy find files, preview with bat, and open with VS Code
 alias fz="fzf --preview 'bat --color=always {}' --preview-window '~3' --bind 'enter:become(code {})'"
 
@@ -116,9 +116,9 @@ alias sup="sudo apt update && sudo apt upgrade"
 ## Autoremove and clean any dangling packages
 alias supc="sudo apt autoremove && sudo apt auto-clean"
 
-## ::: danger Requirements
+## <Aside type="danger" title="Requirements">
 ## This alias requires `httpie`, see https://httpie.io.
-## :::
+## </Aside>
 ## Make httpie output more readable
 ## Usage: http GET <url>, http POST <url>, etc.
 for method in GET HEAD POST PUT DELETE TRACE OPTIONS; do

@@ -218,12 +218,12 @@ function targz() {
     echo "${tmpFile}.gz ($((zippedSize / 1000)) kB) created successfully."
 }
 
-## ::: danger Requirements
+## <Aside type="danger" title="Requirements">
 ## This function requires Python 3.10 or higher.
-## :::
-## ::: info Optional Requirements
+## </Aside>
+## <Aside type="tip" title="Optional Requirements">
 ## You can also use Caddy serve, install it from https://caddyserver.com/docs/install
-## :::
+## </Aside>
 ## > If a caddy server is installed then that is preferred over Python.
 ##
 ## Start an HTTP server from a directory, optionally specifying the port
@@ -267,9 +267,9 @@ function o() {
 	fi
 }
 
-## ::: danger Requirements
+## <Aside type="danger" title="Requirements">
 ## This function requires `tree` - `sudo apt install tree`.
-## :::
+## </Aside>
 ## `tre` is a shorthand for `tree` with hidden files and color enabled, ignoring
 ## the `.git` directory, listing directories first. The output gets piped into
 ## `less` with options to preserve color and line numbers, unless the output is
@@ -285,9 +285,9 @@ function tre() {
 	tree -aC -I '.git|node_modules|bower_components' --dirsfirst "$@" | less -FRNX
 }
 
-## ::: danger Requirements
+## <Aside type="danger" title="Requirements">
 ## This function requires `git` - `sudo apt install git`.
-## :::
+## </Aside>
 ## `ginit` initailises a git repository and makes an initial commit
 ## Usage: `ginit` or `ginit "Initial commit"`
 function ginit() {
@@ -534,13 +534,13 @@ function ppw() {
 
 ## h2: File and Directory Compression Functions
 
-## ::: danger Requirements
+## <Aside type="danger" title="Requirements">
 ## This function requires `shred` - `sudo apt install coreutils`.
-## :::
+## </Aside>
 ## `sd` securely deletes one or more files or directories by overwriting them before deletion
 ## Usage: `sd <file or directory> [file2] [file3] ... [-f] [-n <passes>]`
 ## Options:
-##   `-f`, `--force`           Force deletion without confirmation prompt<br>
+##   `-f`, `--force`           Force deletion without confirmation prompt
 ##   `-n`, `--passes <num>`    Number of overwrite passes (default: 5)
 function sd() {
     local targets=()
@@ -710,15 +710,15 @@ function sd() {
     return 0
 }
 
-## ::: danger Requirements
+## <Aside type="danger" title="Requirements">
 ## This function requires `7zzs`, see https://www.7-zip.org/download.html
-## :::
+## </Aside>
 ## `7zc` creates a 7Zip archive using the LZMA2 algorithm
 ## Usage: `7zc <file or directory> [file2] [dir2] ... [-n <name>] [-p] [-s <size>] [-f]`
 ## Options:
-##   `-n`, `--name <name>`    Archive name (without extension). Required when archiving multiple items; defaults to the single item's basename otherwise.<br>
-##   `-f`, `--force`          Skip the confirmation prompt.<br>
-##   `-p`              Prompt for password to encrypt the archive<br>
+##   `-n`, `--name <name>`    Archive name (without extension). Required when archiving multiple items; defaults to the single item's basename otherwise.
+##   `-f`, `--force`          Skip the confirmation prompt.
+##   `-p`              Prompt for password to encrypt the archive
 ##   `-s <size>`       Split archive into parts of specified size. Supports `b` (bytes)/`k` (kilobytes)/`m` (megabytes)/`g` (gigabytes) units (e.g., `-s 500m`, `-s 1g`, `-s 2048k`). Defaults to MB if no unit specified.
 function 7zc() {
     # Check if 7zzs is installed
@@ -873,17 +873,17 @@ function 7zc() {
     return $?
 }
 
-## ::: danger Requirements
+## <Aside type="danger" title="Requirements">
 ## This function requires `7zzs`, see https://www.7-zip.org/download.html
-## :::
+## </Aside>
 ## `7zx` extracts a 7Zip archive to a directory with the same name as the archive.
 ## Supported formats: `zip`, `rar`, `7z`, `tar`, `tar.gz`, `tgz`, `tar.bz2`, `tbz2`, `tar.xz`, `txz`, `gz`, `bz2`, `xz`
 ##
-## ::: warning Multi-part Archives
+## <Aside type="caution" title="Multi-Part Archives">
 ## For multi-part archives, **always extract the first part** and 7-Zip will automatically use all parts:
 ## - 7-Zip format: `archive.7z.001` (extract this, not `.002`, `.003`, etc.)
 ## - RAR format: `archive.rar` (extract this, not `.r00`, `.r01`, etc.) or `archive.part1.rar` or `archive.part01.rar`
-## :::
+## </Aside>
 ## Usage: `7zx <filename>.7z` or `7zx <filename>.7z.001` (for multi-part archives)
 function 7zx() {
     # Check if 7zzs is installed
@@ -1071,13 +1071,13 @@ function 7zx() {
     return 0
 }
 
-## ::: danger Requirements
+## <Aside type="danger" title="Requirements">
 ## This function requires `zstd`. Install it from `sudo apt install zstd` or download it from [GitHub Release](https://github.com/facebook/zstd/releases).
-## :::
+## </Aside>
 ## `zc` compresses one or more files/directories into a single zstd-compressed tar archive
 ## Usage: `zc <file or directory> [file2] [dir2] ... [-n <name>] [-f]`
 ## Options:
-##   `-n`, `--name <name>`    Archive name (without extension). Required when archiving multiple items; defaults to the single item's basename otherwise.<br>
+##   `-n`, `--name <name>`    Archive name (without extension). Required when archiving multiple items; defaults to the single item's basename otherwise.
 ##   `-f`, `--force`          Skip the confirmation prompt.
 function zc() {
     local targets=()
@@ -1182,9 +1182,9 @@ function zc() {
     fi
 }
 
-## ::: danger Requirements
+## <Aside type="danger" title="Requirements">
 ## This function requires `zstd`. Install it from `sudo apt install zstd` or download it from [GitHub Release](https://github.com/facebook/zstd/releases).
-## :::
+## </Aside>
 ## `zx` extracts a zstd compressed tar file
 ## Usage: `zx <file.tar.zst>`
 function zx() {
@@ -1219,7 +1219,7 @@ function zx() {
 ## `tgc` compresses one or more files/directories into a single gzip-compressed tar archive
 ## Usage: `tgc <file or directory> [file2] [dir2] ... [-n <name>] [-f]`
 ## Options:
-##   `-n`, `--name <name>`    Archive name (without extension). Required when archiving multiple items; defaults to the single item's basename otherwise.<br>
+##   `-n`, `--name <name>`    Archive name (without extension). Required when archiving multiple items; defaults to the single item's basename otherwise.
 ##   `-f`, `--force`          Skip the confirmation prompt.
 function tgc() {
     local targets=()
