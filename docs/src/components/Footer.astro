@@ -1,8 +1,9 @@
 ---
 import Default from '@astrojs/starlight/components/Footer.astro';
+import type { Props } from '@astrojs/starlight/props';
 ---
-
-<Default />
+ 
+<Default {...Astro.props} />
 
 <div class="custom-footer">
   <p>Made with ❤️ by <a href="https://gollahalli.com">Akshay Raj Gollahalli</a></p>
