@@ -1,20 +1,17 @@
 {
-  "name": "dotfiles-docs",
-  "module": "index.ts",
+  "name": "docs",
   "type": "module",
-  "devDependencies": {
-    "vitepress": "^1.6.4"
-  },
-  "peerDependencies": {
-    "typescript": "^5.0.0 || ^6.0.0"
-  },
+  "version": "0.0.1",
   "scripts": {
-    "docs:dev": "just -f ../justfile docs && vitepress dev",
-    "docs:build": "vitepress build",
-    "docs:preview": "vitepress preview"
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
   },
   "dependencies": {
-    "typescript": "^6.0.3",
-    "vite": "^8.0.13"
+    "@astrojs/starlight": "^0.41.3",
+    "astro": "^7.0.2",
+    "sharp": "^0.34.5"
   }
 }

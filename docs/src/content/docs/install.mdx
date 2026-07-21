@@ -1,18 +1,14 @@
 ---
-layout: doc
-title: Get Started
-description: Get started with dotfiles.
-next: 
-    text: 'Functions'
-    link: '/functions'
+title: Install
+description: Instructions to install my dotfiles and scripts.
 ---
 
-# Using Dotfiles
+import { Aside } from '@astrojs/starlight/components';
 
-::: danger Note
+<Aside type="danger" title="Do not run as root!">
 Do not run the install script with `sudo`. Aliases and functions can be used with `sudo` if you want to.
 You can override this by using `--allow-root` when running the installer, but it's not recommended.
-:::
+</Aside>
 
 Some helpful dotfiles for your system.
 
@@ -105,10 +101,10 @@ fi
 
 ## Troubleshooting
 
-- “Do not run this script as root!” — Run `./bootstrap.sh` as your regular user; you can still use `sudo` for commands later.
-- “Unsupported shell” — Only bash and zsh are supported.
-- “No supported package manager found” — Install `curl` and `git` manually, then re-run the script.
-- “Dotfiles are already installed in rc” — The installer will ask whether to reinstall; choose `Yes` to re-append or `No` to keep as-is.
+- "Do not run this script as root!" — Run `./bootstrap.sh` as your regular user; you can still use `sudo` for commands later.
+- "Unsupported shell" — Only bash and zsh are supported.
+- "No supported package manager found" — Install `curl` and `git` manually, then re-run the script.
+- "Dotfiles are already installed in rc" — The installer will ask whether to reinstall; choose `Yes` to re-append or `No` to keep as-is.
 - `dotls: command not found` — Reload your shell: `source ~/.bashrc` or `source ~/.zshrc`, or open a new terminal.
 - Binaries not available on PATH — Run `./updater.sh`; it ensures `~/bin` is on PATH.
 

@@ -1,0 +1,443 @@
+import { Badge } from '@astrojs/starlight/components';
+
+import { Aside } from '@astrojs/starlight/components';
+
+## General Functions
+
+
+### sudo_if_needed
+
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/.functions#L139)
+
+`sudo_if_needed` checks if the file requires superuser permissions and returns `sudo` if needed
+
+**Usage: `sudo_if_needed <file>`**
+
+
+
+
+### die
+
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/.functions#L152)
+
+`die` echoes the first argument as an error message and exits the shell
+
+**Usage: `die "Error: Something went wrong."`**
+
+
+
+
+### mkd
+
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/.functions#L156)
+
+Create a new directory and enter it
+
+**Usage: `mkd <dirname>`**
+
+
+
+
+### targz
+
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/.functions#L162)
+
+Create a .tar.gz archive, using `zopfli`, `pigz` or `gzip` for compression
+
+**Usage: `Usage: targz [--name custom_name] <path to file or directory>...`**
+
+
+
+
+### server
+
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/.functions#L231)
+
+<Aside type="danger" title="Requirements">
+This function requires Python 3.10 or higher.
+</Aside>
+<Aside type="tip" title="Optional Requirements">
+You can also use Caddy serve, install it from https://caddyserver.com/docs/install
+</Aside>
+> If a caddy server is installed then that is preferred over Python.
+
+Start an HTTP server from a directory, optionally specifying the port
+
+**Usage: `server [path] [port]`**
+
+
+
+
+### o
+
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/.functions#L262)
+
+Normalize `open` across Linux, macOS, and Windows.
+This is needed to make the `o` function (see below) cross-platform.
+`o` with no arguments opens the current directory, otherwise opens the given
+location
+
+**Usage: `o`, `o .`, `o ~/`, `o ./myproject`, etc.**
+
+
+
+
+### tre
+
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/.functions#L278)
+
+<Aside type="danger" title="Requirements">
+This function requires `tree` - `sudo apt install tree`.
+</Aside>
+`tre` is a shorthand for `tree` with hidden files and color enabled, ignoring
+the `.git` directory, listing directories first. The output gets piped into
+`less` with options to preserve color and line numbers, unless the output is
+small enough for one screen.
+
+**Usage: `tre <directory>`**
+
+
+
+
+### ginit
+
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/.functions#L293)
+
+<Aside type="danger" title="Requirements">
+This function requires `git` - `sudo apt install git`.
+</Aside>
+`ginit` initailises a git repository and makes an initial commit
+
+**Usage: `ginit` or `ginit "Initial commit"`**
+
+
+
+
+### echoerr
+
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/.functions#L306)
+
+`echoerr` echoes the first argument to stderr. Useful for printing errors.
+
+**Usage: `echoerr "Error: Something went wrong."`**
+
+
+
+
+### dlc
+
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/.functions#L310)
+
+`dlc` deletes all lines that start with the specified comment symbol
+
+**Usage: `dlc "<file>" "<comment_symbol>"`**
+
+
+
+
+### uuidf
+
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/.functions#L347)
+
+Converts all file names in the current directory to some UUID names leaving the extension intact
+
+**Usage: `uuidf`**
+
+
+
+
+### snapc
+
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/.functions#L369)
+
+`snapc` cleans up old snap versions
+
+**Usage: `sudo snapc`**
+
+
+
+
+### debi
+
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/.functions#L389)
+
+`debi` installs a .deb file using `apt install`
+
+**Usage: `debi <file.deb>`**
+
+
+
+
+### lsu
+
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/.functions#L412)
+
+`lsu` lists all USB devices connected to the system
+
+**Usage: `lsu`**
+
+
+
+
+### wrap_text
+
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/.functions#L427)
+
+`wrap_text` wraps text to a specified width and indentation
+
+**Usage: `wrap_text "<text>" [width] [indent]`**
+
+
+
+
+### count
+
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/.functions#L495)
+
+`lsinotify` lists inotify watches for each process and displays them in a formatted table
+
+**Usage: `lsinotify`**
+
+`count` counts files and directories for each path given. For a directory it prints the totals; for a file it prints its line count. Defaults to the current directory.
+
+**Usage: `count` or `count <directory>` or `count <file>` or `count *.js`**
+
+
+## WSL-Specific Functions
+
+
+### pww
+
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/.functions#L521)
+
+`pww` similar to `pw` but from wsl
+
+**Usage: `pww`**
+
+
+
+
+### ppw
+
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/.functions#L529)
+
+`ppw` similar to `pp` but from wsl
+
+**Usage: `ppw`**
+
+
+## File and Directory Compression Functions
+
+
+### sd
+
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/.functions#L545)
+
+<Aside type="danger" title="Requirements">
+This function requires `shred` - `sudo apt install coreutils`.
+</Aside>
+`sd` securely deletes one or more files or directories by overwriting them before deletion
+
+**Usage: `sd <file or directory> [file2] [file3] ... [-f] [-n <passes>]`**
+
+
+**Options:**
+
+`-f`, `--force`           Force deletion without confirmation prompt
+`-n`, `--passes <num>`    Number of overwrite passes (default: 5)
+
+
+
+### 7zc
+
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/.functions#L723)
+
+<Aside type="danger" title="Requirements">
+This function requires `7zzs`, see https://www.7-zip.org/download.html
+</Aside>
+`7zc` creates a 7Zip archive using the LZMA2 algorithm
+
+**Usage: `7zc <file or directory> [file2] [dir2] ... [-n <name>] [-p] [-s <size>] [-f]`**
+
+
+**Options:**
+
+`-n`, `--name <name>`    Archive name (without extension). Required when archiving multiple items; defaults to the single item's basename otherwise.
+`-f`, `--force`          Skip the confirmation prompt.
+`-p`              Prompt for password to encrypt the archive
+`-s <size>`       Split archive into parts of specified size. Supports `b` (bytes)/`k` (kilobytes)/`m` (megabytes)/`g` (gigabytes) units (e.g., `-s 500m`, `-s 1g`, `-s 2048k`). Defaults to MB if no unit specified.
+
+
+
+### 7zx
+
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/.functions#L888)
+
+<Aside type="danger" title="Requirements">
+This function requires `7zzs`, see https://www.7-zip.org/download.html
+</Aside>
+`7zx` extracts a 7Zip archive to a directory with the same name as the archive.
+Supported formats: `zip`, `rar`, `7z`, `tar`, `tar.gz`, `tgz`, `tar.bz2`, `tbz2`, `tar.xz`, `txz`, `gz`, `bz2`, `xz`
+
+<Aside type="caution" title="Multi-Part Archives">
+For multi-part archives, **always extract the first part** and 7-Zip will automatically use all parts:
+- 7-Zip format: `archive.7z.001` (extract this, not `.002`, `.003`, etc.)
+- RAR format: `archive.rar` (extract this, not `.r00`, `.r01`, etc.) or `archive.part1.rar` or `archive.part01.rar`
+</Aside>
+
+**Usage: `7zx <filename>.7z` or `7zx <filename>.7z.001` (for multi-part archives)**
+
+
+
+
+### zc
+
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/.functions#L1082)
+
+<Aside type="danger" title="Requirements">
+This function requires `zstd`. Install it from `sudo apt install zstd` or download it from [GitHub Release](https://github.com/facebook/zstd/releases).
+</Aside>
+`zc` compresses one or more files/directories into a single zstd-compressed tar archive
+
+**Usage: `zc <file or directory> [file2] [dir2] ... [-n <name>] [-f]`**
+
+
+**Options:**
+
+`-n`, `--name <name>`    Archive name (without extension). Required when archiving multiple items; defaults to the single item's basename otherwise.
+`-f`, `--force`          Skip the confirmation prompt.
+
+
+
+### zx
+
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/.functions#L1190)
+
+<Aside type="danger" title="Requirements">
+This function requires `zstd`. Install it from `sudo apt install zstd` or download it from [GitHub Release](https://github.com/facebook/zstd/releases).
+</Aside>
+`zx` extracts a zstd compressed tar file
+
+**Usage: `zx <file.tar.zst>`**
+
+
+
+
+### tgc
+
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/.functions#L1224)
+
+`tgc` compresses one or more files/directories into a single gzip-compressed tar archive
+
+**Usage: `tgc <file or directory> [file2] [dir2] ... [-n <name>] [-f]`**
+
+
+**Options:**
+
+`-n`, `--name <name>`    Archive name (without extension). Required when archiving multiple items; defaults to the single item's basename otherwise.
+`-f`, `--force`          Skip the confirmation prompt.
+
+
+
+### tgx
+
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/.functions#L1325)
+
+`tgx` extracts a gzip compressed tar file
+
+**Usage: `tgx <file.tar.gz>`**
+
+
+## Git Related Functions
+
+
+### gclone
+
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/.functions#L1355)
+
+`gclone` clones a git repository and cd's into it
+
+**Usage: `gclone <git_url>`**
+
+
+
+
+### gsubd
+
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/.functions#L1374)
+
+`gsubd` removed the current Git submodule and its entry in `.gitmodules`
+
+**Usage: `gsubd <submodule_path>`**
+
+
+
+
+### gclean
+
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/.functions#L1410)
+
+`gclean` removes all untracked files, including ignored files and directories
+
+**Usage: `gclean`**
+
+
+
+
+### gcl
+
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/.functions#L1424)
+
+`gcl` Generates a changelog from the commit history
+
+**Usage: `gcl`**
+
+
+## Dotfiles Related Functions
+
+
+
+
+### dot
+
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/.functions#L1459)
+
+`dot` prints help for the dotfiles and can be used to run the dotfiles functions
+
+**Usage: `dot` or `dot <command>`**
+
+
+
+
+### dotu
+
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/.functions#L1480)
+
+`dotu` updates the dotfiles to the latest main branch
+
+**Usage: `dotu`**
+
+
+
+
+### dotub
+
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/.functions#L1582)
+
+`dotub` updates binary files only to its latest version from GitHub releases.
+
+**Usage: `dotub` or `dotub --dry-run` to see what would be updated without actually updating**
+
+
+
+
+### dotls
+
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/.functions#L1630)
+
+`dotls` lists all the aliases and functions in the dotfiles with their descriptions
+
+**Usage: `dotls`**
+
+
+
