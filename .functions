@@ -876,6 +876,169 @@ function 7zc() {
 ## <Aside type="danger" title="Requirements">
 ## This function requires `7zzs`, see https://www.7-zip.org/download.html
 ## </Aside>
+## `7zip` creates a `.zip` archive using 7-Zip's Deflate method (maximum portability).
+## Usage: `7zip <file or directory> [file2] [dir2] ... [-n <name>] [-p] [-s <size>] [-f]`
+## Options:
+##   `-n`, `--name <name>`    Archive name (without extension). Required when archiving multiple items; defaults to the single item's basename otherwise.
+##   `-f`, `--force`          Skip the confirmation prompt.
+##   `-p`              Prompt for password to encrypt the archive (AES-256).
+##   `-s <size>`       Split archive into parts of specified size. Supports `b` (bytes)/`k` (kilobytes)/`m` (megabytes)/`g` (gigabytes) units (e.g., `-s 500m`, `-s 1g`, `-s 2048k`). Defaults to MB if no unit specified.
+function 7zip() {
+    # Check if 7zzs is installed
+    if ! command -v 7zzs &> /dev/null; then
+        echoerr "Error: 7zzs not found. Please install 7zzs from https://www.7-zip.org/download.html"
+        return 1
+    fi
+
+    local targets=()
+    local archive_name=""
+    local use_password=false
+    local password=""
+    local split_size=""
+    local force=false
+
+    # Parse arguments
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -n|--name)
+                if [[ -z $2 ]]; then
+                    echoerr "Error: -n/--name requires an argument"
+                    return 1
+                fi
+                archive_name=$2
+                shift 2
+                ;;
+            -f|--force)
+                force=true
+                shift
+                ;;
+            -p)
+                use_password=true
+                shift
+                ;;
+            -s)
+                if [[ -z $2 ]]; then
+                    echoerr "Error: -s requires a size argument"
+                    return 1
+                fi
+
+                # Parse size with optional unit (b, k, m, g)
+                if [[ $2 =~ ^([0-9]+)([bkmg])?$ ]]; then
+                    local size_num="${BASH_REMATCH[1]}"
+                    local size_unit="${BASH_REMATCH[2]}"
+                    [[ -z "$size_unit" ]] && size_unit="m"
+                    split_size="${size_num}${size_unit}"
+                else
+                    echoerr "Error: -s requires a valid size (e.g., 500, 500m, 1g, 2048k)"
+                    return 1
+                fi
+                shift 2
+                ;;
+            *)
+                targets+=("$1")
+                shift
+                ;;
+        esac
+    done
+
+    # Check if any targets are provided
+    if [[ ${#targets[@]} -eq 0 ]]; then
+        echoerr "Error: No target specified."
+        echoerr "Usage: 7zip <file or directory> [file2] [dir2] ... [-n <name>] [-p] [-s <size>]"
+        return 1
+    fi
+
+    # Validate all targets exist
+    local invalid_targets=()
+    for target in "${targets[@]}"; do
+        [[ ! -e "$target" ]] && invalid_targets+=("$target")
+    done
+
+    if [[ ${#invalid_targets[@]} -gt 0 ]]; then
+        echoerr "Error: The following targets were not found:"
+        for target in "${invalid_targets[@]}"; do
+            echoerr "  - $target"
+        done
+        return 1
+    fi
+
+    # Determine archive name
+    if [[ -z "$archive_name" ]]; then
+        if [[ ${#targets[@]} -eq 1 ]]; then
+            archive_name=$(basename "${targets[0]%/}")
+        else
+            echoerr "Error: -n/--name is required when archiving multiple items."
+            echoerr "Example: 7zip ${targets[0]} ${targets[1]} -n my-archive"
+            return 1
+        fi
+    fi
+
+    # Strip trailing .zip if user passed it
+    archive_name="${archive_name%.zip}"
+    local output="${archive_name}.zip"
+
+    # Refuse to overwrite an existing archive
+    if [[ -e "$output" ]]; then
+        echoerr "Error: $output already exists. Choose a different name with -n."
+        return 1
+    fi
+
+    # List what's being archived
+    if [[ -n "$split_size" ]]; then
+        echo "Compressing ${#targets[@]} item(s) into $output (split: ${split_size}):"
+    else
+        echo "Compressing ${#targets[@]} item(s) into $output:"
+    fi
+    for target in "${targets[@]}"; do
+        local item_type="file"
+        [[ -d "$target" ]] && item_type="directory"
+        echo "  - $target ($item_type)"
+    done
+
+    # Confirmation prompt (unless -f flag is used)
+    if [[ "$force" == false ]]; then
+        read -p "Continue? [Y/n]: " confirmation
+        confirmation=${confirmation:-Y}
+        confirmation=$(echo "$confirmation" | tr '[:upper:]' '[:lower:]')
+        if [[ "$confirmation" != "y" && "$confirmation" != "yes" ]]; then
+            echo "Operation cancelled."
+            return 0
+        fi
+    fi
+
+    # Handle password prompt if -p flag was set
+    if [[ "$use_password" == true ]]; then
+        read -s -p "Enter password: " password
+        echo
+        if [[ -z "$password" ]]; then
+            echoerr "Error: Password cannot be empty"
+            return 1
+        fi
+        read -s -p "Confirm password: " password_confirm
+        echo
+        if [[ "$password" != "$password_confirm" ]]; then
+            echoerr "Error: Passwords do not match"
+            return 1
+        fi
+    fi
+
+    # Build zip command with optional split and password
+    # Deflate method at ultra (-mx9) for broad compatibility; AES-256 for encryption
+    local cmd="7zzs a -tzip -mm=Deflate -mx9"
+    [[ -n "$split_size" ]] && cmd="$cmd -v$split_size"
+    [[ "$use_password" == true ]] && cmd="$cmd -mem=AES256 -p\"$password\""
+    cmd="$cmd \"$output\""
+    for target in "${targets[@]}"; do
+        cmd="$cmd \"$target\""
+    done
+
+    eval $cmd
+    return $?
+}
+
+## <Aside type="danger" title="Requirements">
+## This function requires `7zzs`, see https://www.7-zip.org/download.html
+## </Aside>
 ## `7zx` extracts a 7Zip archive to a directory with the same name as the archive.
 ## Supported formats: `zip`, `rar`, `7z`, `tar`, `tar.gz`, `tgz`, `tar.bz2`, `tbz2`, `tar.xz`, `txz`, `gz`, `bz2`, `xz`
 ##
