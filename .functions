@@ -1805,6 +1805,8 @@ function dotls() {
     local MAGENTA=$'\033[0;35m'
     local YELLOW=$'\033[0;33m'
     local BLUE=$'\033[1;94m'
+    local RED=$'\033[0;31m'
+    local GREEN=$'\033[0;32m'
     local NC=$'\033[0m'
 
     # Terminal width
@@ -1819,8 +1821,63 @@ function dotls() {
     _dotls_render() {
         local file=$1 kind=$2
         local description=""
+        local asides=()
+        local in_aside=0
+        local aside_type=""
+        local aside_title=""
+        local aside_body=""
         local h2_re='^##[[:space:]]+h2:[[:space:]]*(.+)$'
         local fn_re='^function[[:space:]]+([^_][^(]*)\(\)'
+        local aside_open_re='<Aside[[:space:]]+type="([^"]+)"[[:space:]]+title="([^"]+)">'
+        local aside_close_re='</Aside>'
+
+        _dotls_aside_color() {
+            case "$1" in
+                danger) echo "$RED" ;;
+                caution) echo "$YELLOW" ;;
+                tip) echo "$GREEN" ;;
+                note) echo "$BLUE" ;;
+                *) echo "$CYAN" ;;
+            esac
+        }
+
+        _dotls_print_asides() {
+            local count=${#asides[@]}
+            [[ $count -eq 0 ]] && return
+
+            local indent
+            indent=$(printf '%*s' $((name_width + 2)) "")
+            local i=0
+            for aside in "${asides[@]}"; do
+                local atype="${aside%%|*}"
+                local rest="${aside#*|}"
+                local atitle="${rest%%|*}"
+                local abody="${rest#*|}"
+                local acolor
+                acolor=$(_dotls_aside_color "$atype")
+                i=$((i + 1))
+                local branch="├─"
+                local hang="│ "
+                if [[ $i -eq $count ]]; then
+                    branch="└─"
+                    hang="  "
+                fi
+                printf '%s%s%s%s %s[%s] %s%s\n' "$indent" "$DIM" "$branch" "$NC" "$acolor$BOLD" "$atype" "$atitle" "$NC"
+                if [[ -n $abody ]]; then
+                    local highlighted
+                    highlighted=$(echo "$abody" | sed -E "s/\`([^\`]+)\`/${MAGENTA}\1${acolor}/g")
+                    if command -v fmt &> /dev/null; then
+                        printf '%s%s%s\n' "$acolor" "$highlighted" "$NC" \
+                            | fmt -w "$((desc_width - 4))" \
+                            | awk -v pad="$indent" -v h="$hang" -v dim="$DIM" -v nc="$NC" \
+                                '{printf "%s%s%s%s %s\n", pad, dim, h, nc, $0}'
+                    else
+                        printf '%s%s%s%s %s%s%s\n' "$indent" "$DIM" "$hang" "$NC" "$acolor" "$highlighted" "$NC"
+                    fi
+                fi
+            done
+            echo ""
+        }
 
         while IFS= read -r line; do
             # Section header: `## h2: Some Section`
@@ -1828,6 +1885,8 @@ function dotls() {
                 printf '\n  %s%s▸ %s%s\n' "$BOLD" "$YELLOW" "${BASH_REMATCH[1]}" "$NC"
                 printf '  %s%s%s\n' "$DIM" "$(printf '%.0s─' $(seq 1 $((term_width - 4))))" "$NC"
                 description=""
+                asides=()
+                in_aside=0
                 continue
             fi
 
@@ -1837,6 +1896,29 @@ function dotls() {
                     local desc
                     desc=$(echo "$line" | sed -E 's/^##[[:space:]]*//')
                     if [[ ! $desc =~ ^::: ]]; then
+                        if [[ $desc =~ $aside_open_re ]]; then
+                            in_aside=1
+                            aside_type="${BASH_REMATCH[1]}"
+                            aside_title="${BASH_REMATCH[2]}"
+                            aside_body=""
+                            continue
+                        fi
+                        if [[ $in_aside -eq 1 && $desc =~ $aside_close_re ]]; then
+                            asides+=("${aside_type}|${aside_title}|${aside_body}")
+                            in_aside=0
+                            aside_type=""
+                            aside_title=""
+                            aside_body=""
+                            continue
+                        fi
+                        if [[ $in_aside -eq 1 ]]; then
+                            if [[ -n $aside_body ]]; then
+                                aside_body="$aside_body $desc"
+                            else
+                                aside_body="$desc"
+                            fi
+                            continue
+                        fi
                         if [[ -n $description ]]; then
                             description="$description $desc"
                         else
@@ -1880,15 +1962,20 @@ function dotls() {
                 else
                     echo ""
                 fi
+                _dotls_print_asides
                 description=""
+                asides=()
                 continue
             fi
 
             # Any other non-blank, non-`##` content resets the description buffer
             if [[ -n $line && ! $line =~ ^[[:space:]]*$ ]]; then
                 description=""
+                asides=()
+                in_aside=0
             fi
         done < "$file"
+        unset -f _dotls_aside_color _dotls_print_asides
     }
 
     printf '\n%s━━━ Aliases ━━━%s\n' "$BLUE" "$NC"
