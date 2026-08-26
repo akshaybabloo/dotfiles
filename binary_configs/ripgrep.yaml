@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/akshaybabloo/binstall/refs/heads/main/schema.json
+name: "ripgrep"
+description: "A line-oriented search tool that recursively searches the current directory for a regex pattern."
+url: "https://github.com/BurntSushi/ripgrep"
+installLocation: "~/bin"
+files:
+  - fileName: "rg"
+    checkVersion: true
+    copyIt: true
+    versionCommand:
+      args: "--version"
+      regexVersion: "\\d+\\.\\d+\\.\\d+"
+download:
+  linux:
+    amd64:
+      fileName: "ripgrep-{{.Version}}-x86_64-unknown-linux-musl.tar.gz"
