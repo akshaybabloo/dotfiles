@@ -1602,6 +1602,30 @@ function gcl() {
     git log --pretty=format:'- %s' "$branch"
 }
 
+## `gbranch` creates a new git branch and switches to it. Adds a "-" if spaces are present in the branch name.
+## Usage: `gbranch <branch_name>`
+function gbranch() {
+    # Check if git is installed
+    if ! command -v git &> /dev/null; then
+        echoerr "Error: git not found. Please install git from https://git-scm.com/downloads"
+        return
+    fi
+
+    # Check if the first argument is not empty
+    if [[ -z $1 ]]; then
+        echoerr "Error: No branch name provided."
+        return
+    fi
+
+    local branch_name="$*"
+
+    # Add "-" if spaces are present in the branch name
+    branch_name="${branch_name// /-}"
+
+    # Create a new branch and switch to it
+    git checkout -b "$branch_name"
+}
+
 # =========================================================================================================
 # ============================================== Dotfiles =================================================
 # =========================================================================================================
