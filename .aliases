@@ -61,7 +61,7 @@ alias fs="fs_rs"
 ## This alias requires `eza`, see https://github.com/eza-community/eza.
 ## </Aside>
 ## List all files colorized using eza
-alias ls="eza -F"
+alias ls="eza -F auto"
 ## <Aside type="danger" title="Requirements">
 ## This alias requires `eza`, see https://github.com/eza-community/eza.
 ## </Aside>
