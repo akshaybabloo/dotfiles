@@ -1,0 +1,21 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/akshaybabloo/binstall/refs/heads/main/schema.json
+name: "lazygit"
+description: "A simple terminal UI for git commands"
+url: "https://github.com/jesseduffield/lazygit"
+installLocation: "~/bin"
+download:
+  linux:
+    amd64:
+      fileName: "lazygit_{{.Version}}_linux_x86_64.tar.gz"
+files:
+  - fileName: "*"
+    copyIt: true
+    checkVersion: false
+
+  - fileName: "lazygit"
+    copyIt: false
+    checkVersion: true
+    versionCommand:
+      args: "--version"
+      regexVersion: "\\d+\\.\\d+\\.\\d+"
+
