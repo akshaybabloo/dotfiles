@@ -14,8 +14,7 @@ else
 fi
 
 # Source all files
-for file in "$script_dir"/.{aliases,functions}; do
-    echo "Sourcing $file..."
+for file in "$script_dir"/{aliases.sh,functions.sh}; do
     if [ -r "$file" ] && [ -f "$file" ]; then
         source "$file"
     fi
