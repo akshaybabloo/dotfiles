@@ -5,7 +5,7 @@ set -euo pipefail  # Exit on error, undefined variables, pipe failures
 # Configuration
 readonly FUNCTIONS_FILE="${1:-functions.sh}"
 readonly ALIASES_FILE="${2:-aliases.sh}"
-readonly OUTPUT_DIR="${3:-$(pwd)/docs/src/assets}"
+readonly OUTPUT_DIR="${3:-$(pwd)/docs/src/content/docs/reference}"
 readonly BASE_URL="https://github.com/akshaybabloo/dotfiles/blob/main"
 
 function_content=""
@@ -121,8 +121,8 @@ main() {
         mkdir -p "$OUTPUT_DIR"
     fi
 
-    local functions_output="$OUTPUT_DIR/functions-auto.mdx"
-    local aliases_output="$OUTPUT_DIR/aliases-auto.mdx"
+    local functions_output="$OUTPUT_DIR/functions.mdx"
+    local aliases_output="$OUTPUT_DIR/aliases.mdx"
 
     # Check if output files exist and warn
     if [[ -f "$functions_output" ]] || [[ -f "$aliases_output" ]]; then
@@ -142,7 +142,10 @@ main() {
 
     # Write to separate markdown files
     if [[ -n $function_content ]]; then
-        echo -e "$function_content" > "$functions_output"
+        {
+            printf '%s\n' '---' 'title: Functions' 'description: Helpful functions for your terminal.' '---' ''
+            printf '%s\n' "$(printf '%b' "$function_content")"
+        } > "$functions_output"
         log_success "Generated: $functions_output"
     else
         log_error "No function content generated"
@@ -150,7 +153,10 @@ main() {
     fi
 
     if [[ -n $alias_content ]]; then
-        echo -e "$alias_content" > "$aliases_output"
+        {
+            printf '%s\n' '---' 'title: Aliases' 'description: A few useful aliases for your terminal.' '---' ''
+            printf '%s\n' "$(printf '%b' "$alias_content")"
+        } > "$aliases_output"
         log_success "Generated: $aliases_output"
     else
         log_error "No alias content generated"
