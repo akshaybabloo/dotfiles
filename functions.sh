@@ -2003,10 +2003,10 @@ function dotls() {
     }
 
     printf '\n%s━━━ Aliases ━━━%s\n' "$BLUE" "$NC"
-    _dotls_render "$script_dir/.aliases" alias
+    _dotls_render "$script_dir/aliases.sh" alias
 
     printf '\n\n%s━━━ Functions ━━━%s\n' "$BLUE" "$NC"
-    _dotls_render "$script_dir/.functions" function
+    _dotls_render "$script_dir/functions.sh" function
 
     echo ""
     unset -f _dotls_render

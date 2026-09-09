@@ -39,7 +39,7 @@ fi
 
 # Get script directory
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-readonly DOTFILES_MAIN="$SCRIPT_DIR/.main"
+readonly DOTFILES_MAIN="$SCRIPT_DIR/main.sh"
 
 # Detect shell RC file
 detect_shell_rc() {
@@ -163,9 +163,9 @@ install_dotfiles() {
     
     log_info "Installing dotfiles to $shell_rc"
     
-    # Check if .main exists
+    # Check if main.sh exists
     if [[ ! -f "$DOTFILES_MAIN" ]]; then
-        log_error ".main file not found at $DOTFILES_MAIN"
+        log_error "main.sh file not found at $DOTFILES_MAIN"
         exit 1
     fi
     

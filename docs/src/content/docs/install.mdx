@@ -38,7 +38,7 @@ This will:
 
 - Detect your shell and rc file (`~/.bashrc` or `~/.zshrc`).
 - Back up your rc file (e.g., `~/.bashrc.backup.YYYYMMDD_HHMMSS`).
-- Append a small snippet to source the dotfiles main entry (`.main`).
+- Append a small snippet to source the dotfiles main entry (`main.sh`).
 - Detect your package manager and install `curl` and `git` if they're missing.
 - Offer to run the updater to install and update CLI binaries via `binstall` using configs in `binary_configs/`.
 
@@ -72,7 +72,7 @@ The installer adds these lines to your shell rc:
 
 ```sh
 # Gollahalli Dotfiles
-. "/path/to/cloned/dotfiles/.main"
+. "/path/to/cloned/dotfiles/main.sh"
 ```
 
 It also creates a timestamped backup of your original rc file in the same directory just in case anything goes wrong.
@@ -94,7 +94,7 @@ fi
 - Or edit your rc file and delete the block:
     ```sh
     # Gollahalli Dotfiles
-    . "/path/to/cloned/dotfiles/.main"
+    . "/path/to/cloned/dotfiles/main.sh"
     ```
 2) Open a new terminal or `source` your rc file.
 3) Optionally, remove the cloned `dotfiles` directory.

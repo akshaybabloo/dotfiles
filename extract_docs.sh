@@ -3,8 +3,8 @@
 set -euo pipefail  # Exit on error, undefined variables, pipe failures
 
 # Configuration
-readonly FUNCTIONS_FILE="${1:-.functions}"
-readonly ALIASES_FILE="${2:-.aliases}"
+readonly FUNCTIONS_FILE="${1:-functions.sh}"
+readonly ALIASES_FILE="${2:-aliases.sh}"
 readonly OUTPUT_DIR="${3:-$(pwd)/docs/src/assets}"
 readonly BASE_URL="https://github.com/akshaybabloo/dotfiles/blob/main"
 
