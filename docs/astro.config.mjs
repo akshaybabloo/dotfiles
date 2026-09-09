@@ -19,7 +19,7 @@ export default defineConfig({
 				},
 			],
 			logo: {
-				src: './src/assets/logo.svg',
+				src: './src/assets/logo.png',
 				alt: 'Dotfiles Logo'
 			},
 			components: {
