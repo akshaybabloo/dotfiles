@@ -83,7 +83,7 @@ process_file() {
             if [[ $line == function* ]]; then
                 name=$(echo "$line" | awk '{print $2}' | sed 's/().*//')
             else
-                name=$(echo "$line" | awk '{print $2}' | cut -d'=' -f1)
+                name=$(echo "$line" | sed -E 's/^alias( --)? ([^=]+)=.*/\2/')
             fi
             
             # Skip private functions (starting with _)

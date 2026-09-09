@@ -1957,9 +1957,9 @@ function dotls() {
             local name=""
             local fallback=""
             if [[ $kind == "alias" && $line == alias* ]]; then
-                name=$(echo "$line" | sed -E 's/alias ([^=]+)=.*/\1/')
+                name=$(echo "$line" | sed -E 's/alias( --)? ([^=]+)=.*/\2/')
                 local alias_def
-                alias_def=$(echo "$line" | sed -E 's/alias [^=]+=(.*)$/\1/')
+                alias_def=$(echo "$line" | sed -E 's/alias( --)? [^=]+=(.*)$/\2/')
                 if [[ $alias_def == *"#"* ]]; then
                     fallback=$(echo "$alias_def" | sed -E 's/([^#]+)#.*/\1/' | xargs)
                 else
