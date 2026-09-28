@@ -12,15 +12,43 @@ readonly GREEN='\033[0;32m'
 readonly YELLOW='\033[1;33m'
 readonly NC='\033[0m' # No Color
 
+# Set while a "pending" line (no trailing newline) is on screen
+_pending=""
+
+# Print a status line that the next log call replaces in place
+log_pending() {
+    _pending=1
+    if [[ -t 1 ]]; then
+        echo -ne "${YELLOW}… $1${NC}"
+    else
+        echo -e "${YELLOW}… $1${NC}"
+    fi
+}
+
+_clear_pending() {
+    [[ -z $_pending ]] && return 0
+    _pending=""
+    [[ -t 1 ]] && echo -ne "\r\033[K"
+    return 0
+}
+
 log_error() {
+    _clear_pending
     echo -e "${RED}Error: $1${NC}" >&2
 }
 
 log_success() {
+    _clear_pending
     echo -e "${GREEN}✓ $1${NC}"
 }
 
+log_fail() {
+    _clear_pending
+    echo -e "${RED}✗ $1${NC}"
+}
+
 log_info() {
+    _clear_pending
     echo -e "${YELLOW}ℹ $1${NC}"
 }
 
@@ -215,7 +243,7 @@ function check_for_updates() {
     
     # Compare versions using sort -V
     if [[ $current_version == "$latest_version" ]]; then
-        log_success "$BINARY_NAME is up to date!"
+        log_success "$BINARY_NAME is up to date ($current_version)"
         return 0
     fi
     
@@ -229,7 +257,7 @@ function check_for_updates() {
 
 # Main execution
 main() {
-    log_info "Checking if $BINARY_NAME is installed..."
+    log_pending "Checking if $BINARY_NAME is installed..."
     
     # Check dependencies
     if ! check_dependencies; then
@@ -238,15 +266,17 @@ main() {
     
     # Install if not present
     if ! command -v "$BINARY_NAME" &>/dev/null; then
-        log_info "$BINARY_NAME is not installed. Installing now..."
+        log_fail "$BINARY_NAME is not installed. Installing now..."
         if ! download_and_install_binstall; then
             log_error "Installation failed"
             exit 1
         fi
+    else
+        log_success "$BINARY_NAME is installed"
     fi
     
     # Check for updates
-    log_info "Checking for updates..."
+    log_pending "Checking for updates..."
     if ! check_for_updates; then
         log_error "Update check failed"
         exit 1
