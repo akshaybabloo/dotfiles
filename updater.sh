@@ -208,14 +208,10 @@ function check_for_updates() {
         return 1
     fi
     
-    log_info "Current version: $current_version"
-    
     latest_version=$(get_latest_version)
     if [[ -z $latest_version ]]; then
         return 1
     fi
-    
-    log_info "Latest version: $latest_version"
     
     # Compare versions using sort -V
     if [[ $current_version == "$latest_version" ]]; then
@@ -224,8 +220,7 @@ function check_for_updates() {
     fi
     
     if [[ $(printf '%s\n' "$current_version" "$latest_version" | sort -V | head -n1) == "$current_version" ]]; then
-        log_info "New version available: $latest_version"
-        log_info "Updating..."
+        log_info "Updating $BINARY_NAME: $current_version -> $latest_version"
         download_and_install_binstall
     else
         log_success "$BINARY_NAME is up to date!"
