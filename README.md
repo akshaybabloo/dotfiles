@@ -21,4 +21,5 @@ This should list out any dependencies that are missing. You can manually install
 - `bootstrap.sh`: Script to set up the dotfiles environment.
 - `main.sh`: The main entry point for the dotfiles, sourced by the shell rc file.
 - `extract_docs.sh`: Script to extract documentation from the dotfiles scripts, it's not used directly by the user.
+- `generate_man.sh`: Builds man pages from the same doc comments (`man 7zx`, `man dotfiles`). `main.sh` runs it automatically whenever `functions.sh` or `aliases.sh` change.
 - `justfile`: Contains the task definitions for building docs and other project-related tasks.

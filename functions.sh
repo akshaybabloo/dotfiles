@@ -1687,6 +1687,7 @@ function _dot_help() {
     echo "Commands:"
     echo "  u, update   Updates the dotfiles to the latest main branch"
     echo "  ls          Lists all the aliases and functions in the dotfiles and the shell"
+    echo "  man         Opens the dotfiles man page (see also: man <function or alias>)"
     echo "  dir         Prints the directory where the dotfiles are located"
 }
 
@@ -1704,6 +1705,9 @@ function dot() {
             ;;
         "ls")
             dotls
+            ;;
+        "man")
+            man 7 dotfiles
             ;;
         "dir")
             echo "$(_whereami)"
