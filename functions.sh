@@ -1039,7 +1039,8 @@ function 7zip() {
 ## <Aside type="danger" title="Requirements">
 ## This function requires `7zzs`, see https://www.7-zip.org/download.html
 ## </Aside>
-## `7zx` extracts a 7Zip archive to a directory with the same name as the archive.
+## `7zx` extracts one or more archives, each to a directory with the same name as the archive.
+## When extracting multiple password-protected archives, the password that worked for the previous archive is tried first; you are only prompted if it fails.
 ## Supported formats: `zip`, `rar`, `7z`, `tar`, `tar.gz`, `tgz`, `tar.bz2`, `tbz2`, `tar.xz`, `txz`, `gz`, `bz2`, `xz`
 ##
 ## <Aside type="caution" title="Multi-Part Archives">
@@ -1047,7 +1048,7 @@ function 7zip() {
 ## - 7-Zip format: `archive.7z.001` (extract this, not `.002`, `.003`, etc.)
 ## - RAR format: `archive.rar` (extract this, not `.r00`, `.r01`, etc.) or `archive.part1.rar` or `archive.part01.rar`
 ## </Aside>
-## Usage: `7zx <filename>.7z` or `7zx <filename>.7z.001` (for multi-part archives)
+## Usage: `7zx <filename>.7z [file2] ...` or `7zx <filename>.7z.001` (for multi-part archives)
 function 7zx() {
     # Check if 7zzs is installed
     if ! command -v 7zzs &> /dev/null; then
@@ -1056,12 +1057,31 @@ function 7zx() {
     fi
 
     # Check if argument is provided
-    if [[ -z $1 ]]; then
+    if [[ $# -eq 0 ]]; then
         echoerr "Error: No archive file specified."
-        echoerr "Usage: 7zx <archive_file>"
+        echoerr "Usage: 7zx <archive_file> [archive_file2] ..."
         return 1
     fi
 
+    # Last password that worked; _7zx_one tries it before prompting
+    local _7zx_password=""
+    local failed=()
+    local file
+
+    for file in "$@"; do
+        _7zx_one "$file" || failed+=("$file")
+        [[ $# -gt 1 ]] && echo
+    done
+
+    if [[ ${#failed[@]} -gt 0 ]]; then
+        [[ $# -gt 1 ]] && echoerr "Failed to extract: ${failed[*]}"
+        return 1
+    fi
+    return 0
+}
+
+# Extracts a single archive for 7zx. Reads and updates the caller's _7zx_password.
+function _7zx_one() {
     local file_name="$1"
 
     # Check if file exists
@@ -1172,66 +1192,94 @@ function 7zx() {
     
     echo "Extracting '$file_name' to '$dir_name/'..."
     
-    # Try to list archive without password to check if it's encrypted
-    # Suppress only stderr to hide "Wrong password" errors during detection
-    7zzs l "$file_name" -p- >/dev/null 2>&1
-    local exit_code=$?
-    
-    # If listing failed due to password (exit code 2), prompt for password
-    if [[ $exit_code -eq 2 ]]; then
-        echo "Archive is password protected."
-        local password
-        local max_attempts=3
-        local attempt=1
-        
-        while [[ $attempt -le $max_attempts ]]; do
-            read -s -p "Enter password (attempt $attempt/$max_attempts): " password
-            echo
-            
-            if [[ -z "$password" ]]; then
-                echoerr "Error: Password cannot be empty"
-                ((attempt++))
-                continue
-            fi
-            
-            # Try extraction with password (show progress)
-            7zzs x "$file_name" -o"$dir_name" -p"$password"
-            exit_code=$?
-            
-            if [[ $exit_code -eq 0 ]]; then
-                echo "Extraction complete!"
-                return 0
-            elif [[ $exit_code -eq 2 ]]; then
-                echoerr "Error: Incorrect password"
-                ((attempt++))
-            else
-                echoerr "Error: Extraction failed with exit code $exit_code"
-                rmdir "$dir_name" 2>/dev/null
-                return $exit_code
-            fi
-        done
-        
-        echoerr "Error: Maximum password attempts exceeded"
-        rmdir "$dir_name" 2>/dev/null
-        return 1
+    # Detect encryption: archives with encrypted headers fail to list (exit code 2),
+    # otherwise look for encrypted entries in the technical listing
+    local listing exit_code
+    listing=$(7zzs l -slt "$file_name" -p- 2>/dev/null)
+    exit_code=$?
+
+    local encrypted=false
+    if [[ $exit_code -eq 2 ]] || grep -q "^Encrypted = +" <<< "$listing"; then
+        encrypted=true
     elif [[ $exit_code -ne 0 ]]; then
         echoerr "Error: Cannot read archive (exit code $exit_code)"
         rmdir "$dir_name" 2>/dev/null
         return $exit_code
     fi
-    
-    # Extract without password (show progress)
-    7zzs x "$file_name" -o"$dir_name"
-    exit_code=$?
-    
-    if [[ $exit_code -ne 0 ]]; then
-        echoerr "Error: Extraction failed with exit code $exit_code"
-        rmdir "$dir_name" 2>/dev/null
-        return $exit_code
+
+    if [[ "$encrypted" == false ]]; then
+        # Extract without password (show progress)
+        7zzs x "$file_name" -o"$dir_name"
+        exit_code=$?
+
+        if [[ $exit_code -ne 0 ]]; then
+            echoerr "Error: Extraction failed with exit code $exit_code"
+            rm -rf "$dir_name"
+            return $exit_code
+        fi
+
+        echo "Extraction complete!"
+        return 0
     fi
-    
-    echo "Extraction complete!"
-    return 0
+
+    echo "Archive is password protected."
+
+    # Try the password that worked for the previous archive first
+    if [[ -n "${_7zx_password:-}" ]]; then
+        echo "Trying previous password..."
+        7zzs x "$file_name" -o"$dir_name" -p"$_7zx_password" 2>/dev/null
+        exit_code=$?
+
+        if [[ $exit_code -eq 0 ]]; then
+            echo "Extraction complete!"
+            return 0
+        elif [[ $exit_code -eq 2 ]]; then
+            echo "Previous password didn't work."
+            # A wrong password can leave partial files behind
+            find "$dir_name" -mindepth 1 -delete
+        else
+            echoerr "Error: Extraction failed with exit code $exit_code"
+            rm -rf "$dir_name"
+            return $exit_code
+        fi
+    fi
+
+    local password
+    local max_attempts=3
+    local attempt=1
+
+    while [[ $attempt -le $max_attempts ]]; do
+        read -s -p "Enter password (attempt $attempt/$max_attempts): " password
+        echo
+
+        if [[ -z "$password" ]]; then
+            echoerr "Error: Password cannot be empty"
+            ((attempt++))
+            continue
+        fi
+
+        # Try extraction with password (show progress)
+        7zzs x "$file_name" -o"$dir_name" -p"$password"
+        exit_code=$?
+
+        if [[ $exit_code -eq 0 ]]; then
+            _7zx_password="$password"
+            echo "Extraction complete!"
+            return 0
+        elif [[ $exit_code -eq 2 ]]; then
+            echoerr "Error: Incorrect password"
+            find "$dir_name" -mindepth 1 -delete
+            ((attempt++))
+        else
+            echoerr "Error: Extraction failed with exit code $exit_code"
+            rm -rf "$dir_name"
+            return $exit_code
+        fi
+    done
+
+    echoerr "Error: Maximum password attempts exceeded"
+    rm -rf "$dir_name"
+    return 1
 }
 
 ## <Aside type="danger" title="Requirements">
