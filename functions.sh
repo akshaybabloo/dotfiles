@@ -1972,6 +1972,11 @@ function dotls() {
         local aside_type=""
         local aside_title=""
         local aside_body=""
+        # `## Usage:` text, and the indented lines under `## Options:` / `## Examples:`
+        local usage=""
+        local options=()
+        local examples=()
+        local list_section=""
         local h2_re='^##[[:space:]]+h2:[[:space:]]*(.+)$'
         local fn_re='^function[[:space:]]+([^_][^(]*)\(\)'
         local aside_open_re='<Aside[[:space:]]+type="([^"]+)"[[:space:]]+title="([^"]+)">'
@@ -1985,6 +1990,82 @@ function dotls() {
                 note) echo "$BLUE" ;;
                 *) echo "$CYAN" ;;
             esac
+        }
+
+        _dotls_reset() {
+            description=""
+            asides=()
+            in_aside=0
+            usage=""
+            options=()
+            examples=()
+            list_section=""
+        }
+
+        # Wraps text to a width, then colours it with backtick spans highlighted.
+        # Wrapping happens before colouring so escape codes don't count towards the width.
+        #   $1: text, $2: width, $3: first-line prefix, $4: continuation prefix, $5: text colour
+        _dotls_wrap() {
+            local width=$2 color=$5
+            [[ $width -lt 20 ]] && width=20
+            # Keep backtick spans on one line by swapping their spaces for \001 while wrapping
+            local wrapped
+            wrapped=$(printf '%s\n' "$1" | awk 'BEGIN { FS = OFS = "`" } { for (i = 2; i <= NF; i += 2) gsub(/ /, "\001", $i); print }')
+            if command -v fmt &> /dev/null; then
+                wrapped=$(printf '%s\n' "$wrapped" | fmt -w "$width")
+            fi
+            printf '%s\n' "$wrapped" \
+                | sed -E $'s/\x01/ /g' \
+                | sed -E "s/\`([^\`]+)\`/${MAGENTA}\1${color}/g" \
+                | awk -v first="$3" -v rest="$4" -v c="$color" -v nc="$NC" '{ print (NR == 1 ? first : rest) c $0 nc }'
+        }
+
+        _dotls_print_details() {
+            local indent
+            indent=$(printf '%*s' $((name_width + 2)) "")
+
+            if [[ -n $usage ]]; then
+                _dotls_wrap "$usage" "$((desc_width - 7))" \
+                    "$indent${BOLD}Usage:${NC} " "$indent       " "$DIM"
+            fi
+
+            if [[ ${#options[@]} -gt 0 ]]; then
+                printf '%s%sOptions:%s\n' "$indent" "$BOLD" "$NC"
+                # Split each option into its flags and description at the first run of 2+ spaces
+                local flag_width=0 opt flags
+                for opt in "${options[@]}"; do
+                    flags=$(echo "$opt" | sed -E 's/[[:space:]]{2,}.*$//; s/`//g')
+                    [[ ${#flags} -gt $flag_width ]] && flag_width=${#flags}
+                done
+                [[ $flag_width -gt 28 ]] && flag_width=28
+                local pad
+                pad=$(printf '%*s' $((name_width + 4 + flag_width + 2)) "")
+                for opt in "${options[@]}"; do
+                    flags=$(echo "$opt" | sed -E 's/[[:space:]]{2,}.*$//; s/`//g')
+                    local text=""
+                    [[ $opt =~ [[:space:]]{2,}(.*)$ ]] && text="${BASH_REMATCH[1]}"
+                    local first
+                    first=$(printf '%s  %s%-*s%s  ' "$indent" "$CYAN" "$flag_width" "$flags" "$NC")
+                    if [[ -z $text ]]; then
+                        printf '%s\n' "$first"
+                    else
+                        # Flags longer than the column get their description on the next line
+                        if [[ ${#flags} -gt $flag_width ]]; then
+                            printf '%s\n' "$first"
+                            first="$pad"
+                        fi
+                        _dotls_wrap "$text" "$((desc_width - flag_width - 4))" "$first" "$pad" "$DIM"
+                    fi
+                done
+            fi
+
+            if [[ ${#examples[@]} -gt 0 ]]; then
+                printf '%s%sExamples:%s\n' "$indent" "$BOLD" "$NC"
+                local ex
+                for ex in "${examples[@]}"; do
+                    _dotls_wrap "$ex" "$((desc_width - 2))" "$indent  " "$indent    " "$DIM"
+                done
+            fi
         }
 
         _dotls_print_asides() {
@@ -2010,66 +2091,84 @@ function dotls() {
                 fi
                 printf '%s%s%s%s %s[%s] %s%s\n' "$indent" "$DIM" "$branch" "$NC" "$acolor$BOLD" "$atype" "$atitle" "$NC"
                 if [[ -n $abody ]]; then
-                    local highlighted
-                    highlighted=$(echo "$abody" | sed -E "s/\`([^\`]+)\`/${MAGENTA}\1${acolor}/g")
-                    if command -v fmt &> /dev/null; then
-                        printf '%s%s%s\n' "$acolor" "$highlighted" "$NC" \
-                            | fmt -w "$((desc_width - 4))" \
-                            | awk -v pad="$indent" -v h="$hang" -v dim="$DIM" -v nc="$NC" \
-                                '{printf "%s%s%s%s %s\n", pad, dim, h, nc, $0}'
-                    else
-                        printf '%s%s%s%s %s%s%s\n' "$indent" "$DIM" "$hang" "$NC" "$acolor" "$highlighted" "$NC"
-                    fi
+                    local prefix="$indent$DIM$hang$NC "
+                    _dotls_wrap "$abody" "$((desc_width - 4))" "$prefix" "$prefix" "$acolor"
                 fi
             done
             echo ""
         }
 
+        local md_link_re='\[([^]]*)\]\(([^)]*)\)'
         while IFS= read -r line; do
+            # Markdown links `[text](url)` are shown as just the URL
+            if [[ $line == \#\#* ]]; then
+                while [[ $line =~ $md_link_re ]]; do
+                    line="${line/"${BASH_REMATCH[0]}"/${BASH_REMATCH[2]}}"
+                done
+            fi
+
             # Section header: `## h2: Some Section`
             if [[ $line =~ $h2_re ]]; then
                 printf '\n  %s%s▸ %s%s\n' "$BOLD" "$YELLOW" "${BASH_REMATCH[1]}" "$NC"
                 printf '  %s%s%s\n' "$DIM" "$(printf '%.0s─' $(seq 1 $((term_width - 4))))" "$NC"
-                description=""
-                asides=()
-                in_aside=0
+                _dotls_reset
                 continue
             fi
 
-            # Description comment line (`##` but not h2:/Usage:/Options:/Examples:/:::)
+            if [[ $line =~ ^##[[:space:]]+Usage:[[:space:]]*(.*)$ ]]; then
+                usage="${BASH_REMATCH[1]}"
+                list_section=""
+                continue
+            fi
+            if [[ $line =~ ^##[[:space:]]+(Options|Examples):[[:space:]]*$ ]]; then
+                list_section="${BASH_REMATCH[1]}"
+                continue
+            fi
+            # Indented lines under `## Options:` / `## Examples:` are list items
+            if [[ -n $list_section ]]; then
+                if [[ $line =~ ^##[[:space:]]{2,}([^[:space:]].*)$ ]]; then
+                    if [[ $list_section == "Options" ]]; then
+                        options+=("${BASH_REMATCH[1]}")
+                    else
+                        examples+=("${BASH_REMATCH[1]}")
+                    fi
+                    continue
+                fi
+                list_section=""
+            fi
+
+            # Description comment line (`##` but not h2:/:::)
             if [[ $line == \#\#* ]]; then
-                if [[ ! $line =~ ^##\ (Usage:|Options:|Examples:) ]]; then
-                    local desc
-                    desc=$(echo "$line" | sed -E 's/^##[[:space:]]*//')
-                    if [[ ! $desc =~ ^::: ]]; then
-                        if [[ $desc =~ $aside_open_re ]]; then
-                            in_aside=1
-                            aside_type="${BASH_REMATCH[1]}"
-                            aside_title="${BASH_REMATCH[2]}"
-                            aside_body=""
-                            continue
-                        fi
-                        if [[ $in_aside -eq 1 && $desc =~ $aside_close_re ]]; then
-                            asides+=("${aside_type}|${aside_title}|${aside_body}")
-                            in_aside=0
-                            aside_type=""
-                            aside_title=""
-                            aside_body=""
-                            continue
-                        fi
-                        if [[ $in_aside -eq 1 ]]; then
-                            if [[ -n $aside_body ]]; then
-                                aside_body="$aside_body $desc"
-                            else
-                                aside_body="$desc"
-                            fi
-                            continue
-                        fi
-                        if [[ -n $description ]]; then
-                            description="$description $desc"
+                local desc
+                desc=$(echo "$line" | sed -E 's/^##[[:space:]]*//')
+                if [[ ! $desc =~ ^::: ]]; then
+                    if [[ $desc =~ $aside_open_re ]]; then
+                        in_aside=1
+                        aside_type="${BASH_REMATCH[1]}"
+                        aside_title="${BASH_REMATCH[2]}"
+                        aside_body=""
+                        continue
+                    fi
+                    if [[ $in_aside -eq 1 && $desc =~ $aside_close_re ]]; then
+                        asides+=("${aside_type}|${aside_title}|${aside_body}")
+                        in_aside=0
+                        aside_type=""
+                        aside_title=""
+                        aside_body=""
+                        continue
+                    fi
+                    if [[ $in_aside -eq 1 ]]; then
+                        if [[ -n $aside_body ]]; then
+                            aside_body="$aside_body $desc"
                         else
-                            description="$desc"
+                            aside_body="$desc"
                         fi
+                        continue
+                    fi
+                    if [[ -n $description ]]; then
+                        description="$description $desc"
+                    else
+                        description="$desc"
                     fi
                 fi
                 continue
@@ -2095,33 +2194,22 @@ function dotls() {
                 printf '  %s%-*s%s' "$CYAN" "$name_width" "$name" "$NC"
                 local text="${description:-$fallback}"
                 if [[ -n $text ]]; then
-                    # Highlight backticks, then dim the rest
-                    local highlighted
-                    highlighted=$(echo "$text" | sed -E "s/\`([^\`]+)\`/${MAGENTA}\1${DIM}/g")
-                    if command -v fmt &> /dev/null; then
-                        printf '%s%s%s\n' "$DIM" "$highlighted" "$NC" \
-                            | fmt -w "$desc_width" \
-                            | awk -v w="$name_width" 'NR==1 {print} NR>1 {printf "%*s%s\n", w+2, "", $0}'
-                    else
-                        printf '%s%s%s\n' "$DIM" "$highlighted" "$NC"
-                    fi
+                    _dotls_wrap "$text" "$desc_width" "" "$(printf '%*s' $((name_width + 2)) "")" "$DIM"
                 else
                     echo ""
                 fi
+                _dotls_print_details
                 _dotls_print_asides
-                description=""
-                asides=()
+                _dotls_reset
                 continue
             fi
 
             # Any other non-blank, non-`##` content resets the description buffer
             if [[ -n $line && ! $line =~ ^[[:space:]]*$ ]]; then
-                description=""
-                asides=()
-                in_aside=0
+                _dotls_reset
             fi
         done < "$file"
-        unset -f _dotls_aside_color _dotls_print_asides
+        unset -f _dotls_aside_color _dotls_print_asides _dotls_print_details _dotls_wrap _dotls_reset
     }
 
     printf '\n%s━━━ Aliases ━━━%s\n' "$BLUE" "$NC"
