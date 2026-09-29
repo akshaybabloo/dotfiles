@@ -268,6 +268,76 @@ function o() {
 }
 
 ## <Aside type="danger" title="Requirements">
+## This function requires `git` - `sudo apt install git`.
+## </Aside>
+## `ow` opens a web URL in the browser. It accepts `http(s)://`, `ssh://`, `git://`
+## and `git@host:user/repo` style URLs, or the name of a git remote. With no
+## arguments it opens the current repository's `origin` remote (or the first remote).
+## Git `url.<base>.insteadOf` aliases and SSH `Host` aliases from `~/.ssh/config`
+## are resolved to their real host.
+## Usage: `ow`, `ow upstream`, `ow https://example.com`, `ow git@github.com:user/repo.git`
+function ow() {
+	local url="${1:-}"
+
+	if [[ -z $url ]]; then
+		if ! git rev-parse --is-inside-work-tree &> /dev/null; then
+			echoerr "Not a git repository, and no URL was given."
+			return 1
+		fi
+		url=$(git remote | grep -qx origin && echo origin || git remote | head -n 1)
+		if [[ -z $url ]]; then
+			echoerr "This git repository has no remotes."
+			return 1
+		fi
+	fi
+
+	# Expands remote names and applies any `insteadOf` aliases from git config
+	if command -v git &> /dev/null; then
+		url=$(git ls-remote --get-url "$url" 2> /dev/null || echo "$url")
+	fi
+
+	local host="" path=""
+	case "$url" in
+		http://* | https://*)
+			;;
+		ssh://* | git+ssh://* | ssh+git://* | git://*)
+			# scheme://[user@]host[:port]/path
+			local rest="${url#*://}"
+			host="${rest%%/*}"
+			path="${rest#*/}"
+			host="${host#*@}"
+			host="${host%%:*}"
+			;;
+		*:*)
+			# scp-like syntax: [user@]host:path
+			host="${url%%:*}"
+			path="${url#*:}"
+			host="${host#*@}"
+			;;
+		*)
+			echoerr "Unsupported URL: $url"
+			return 1
+			;;
+	esac
+
+	if [[ -n $host ]]; then
+		# Resolve SSH config `Host` aliases to the real hostname
+		if command -v ssh &> /dev/null; then
+			local real_host
+			real_host=$(ssh -G "$host" 2> /dev/null | awk '$1 == "hostname" { print $2; exit }')
+			[[ -n $real_host ]] && host="$real_host"
+		fi
+		url="https://$host/${path#/}"
+	fi
+
+	# Drop credentials and the trailing `.git`
+	url=$(echo "$url" | sed -E 's#^(https?://)[^/@]*@#\1#; s#\.git/?$##')
+
+	echo "Opening $url"
+	open "$url" &> /dev/null
+}
+
+## <Aside type="danger" title="Requirements">
 ## This function requires `tree` - `sudo apt install tree`.
 ## </Aside>
 ## `tre` is a shorthand for `tree` with hidden files and color enabled, ignoring
