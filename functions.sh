@@ -338,6 +338,15 @@ function ow() {
 }
 
 ## <Aside type="danger" title="Requirements">
+## This function requires `uv`, see https://docs.astral.sh/uv/getting-started/installation/.
+## </Aside>
+## `topcu` shows the cuda usage and GPU information using the `sysmon.py` script.
+## Usage: `topcu`
+function topcu() {
+    uv run --locked "$(_whereami)/scripts/sysmon.py"
+}
+
+## <Aside type="danger" title="Requirements">
 ## This function requires `tree` - `sudo apt install tree`.
 ## </Aside>
 ## `tre` is a shorthand for `tree` with hidden files and color enabled, ignoring
