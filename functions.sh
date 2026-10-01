@@ -593,6 +593,42 @@ function count() {
     done
 }
 
+## `sup` updates the system by first updating package indices, then listing upgradable packages, and finally performing the upgrade.
+## Usage: `sup`
+function sup() {
+    local SUDO=""
+    if [ "$EUID" -ne 0 ]; then
+        SUDO="sudo"
+    fi
+
+    echo "==> Updating package indices..."
+    $SUDO apt update || return 1
+
+    # Check if there are packages to upgrade
+    local upgradable
+    upgradable=$(apt list --upgradable 2>/dev/null | grep -v "Listing...")
+
+    if [ -z "$upgradable" ]; then
+        echo "==> System is already up to date."
+        return 0
+    fi
+
+    echo -e "\n==> Upgradable packages found:"
+    echo "$upgradable"
+
+    echo -e "\n==> Target download sources:"
+    # Print each package as "<repository>: <file>", trimming the URL at /pool/ (or the filename if there's no pool)
+    apt-get upgrade --print-uris -qq 2>/dev/null | awk '{
+        url = $1
+        gsub(/\x27/, "", url)
+        if (!sub(/\/pool\/.*/, "", url)) sub(/\/[^\/]*$/, "", url)
+        print url ": " $2
+    }' | sort
+
+    echo -e "\n==> Proceeding with upgrade..."
+    $SUDO apt upgrade "$@"
+}
+
 ## h2: WSL-Specific Functions
 
 ## `pww` similar to `pw` but from wsl

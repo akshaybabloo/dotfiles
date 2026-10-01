@@ -111,8 +111,6 @@ alias logcat='adb logcat -b all -v color "*:V" | tee ~/logcat_archive/$(date +"%
 ## Fuzzy find files, preview with bat, and open with VS Code
 alias fz="fzf --preview 'bat --color=always {}' --preview-window '~3' --bind 'enter:become(code {})'"
 
-## Upgrades system libraries
-alias sup="sudo apt update && sudo apt upgrade"
 ## Autoremove and clean any dangling packages
 alias supc="sudo apt autoremove && sudo apt auto-clean"
 
