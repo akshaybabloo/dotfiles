@@ -17,6 +17,11 @@ alias .....="cd ../../../.."
 alias ~="cd ~" # `cd` is probably faster to type though
 ## Toggle between directories
 alias -- -="cd -"
+## <Aside type="danger" title="Requirements">
+## This alias requires `zoxide`, see https://github.com/ajeetdsouza/zoxide.
+## </Aside>
+## Zoxide integration for faster directory navigation
+alias z="zoxide"
 
 ## h2: Shortcuts
 
