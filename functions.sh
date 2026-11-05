@@ -629,6 +629,80 @@ function sup() {
     $SUDO apt upgrade "$@"
 }
 
+## ## <Aside type="danger" title="Requirements">
+## This function requires `needrestart` - `sudo apt install needrestart`.
+## </Aside>
+## `whyrestart` shows what is asking for a system restart: the packages listed in `/var/run/reboot-required.pkgs`, a pending kernel or microcode upgrade, and services or sessions still running outdated libraries (via `needrestart -b`).
+## Usage: `whyrestart`
+function whyrestart() {
+    local SUDO=""
+    if [ "$EUID" -ne 0 ]; then
+        SUDO="sudo"
+    fi
+
+    echo "==> Reboot flag:"
+    if [ -f /var/run/reboot-required ]; then
+        _redText "    $(head -n 1 /var/run/reboot-required)"
+    else
+        _greenText "    No restart required (/var/run/reboot-required not found)."
+    fi
+
+    if [ -s /var/run/reboot-required.pkgs ]; then
+        echo -e "\n==> Packages requesting a restart:"
+        sort -u /var/run/reboot-required.pkgs | sed 's/^/    /'
+    fi
+
+    if ! command -v needrestart &> /dev/null && [ ! -x /usr/sbin/needrestart ]; then
+        echo -e "\nneedrestart not found. Install it with: sudo apt install needrestart"
+        return 0
+    fi
+
+    local output
+    output=$($SUDO needrestart -b 2>/dev/null) || {
+        echoerr "Error: needrestart -b failed."
+        return 1
+    }
+
+    echo "$output" | awk '
+        BEGIN { split("unknown|no pending upgrade|ABI compatible upgrade pending|version upgrade pending", ksta, "|") }
+        /^NEEDRESTART-KCUR:/  { kcur = $2 }
+        /^NEEDRESTART-KEXP:/  { kexp = $2 }
+        /^NEEDRESTART-KSTA:/  { kst = $2 }
+        /^NEEDRESTART-UCSTA:/ { ucst = $2 }
+        /^NEEDRESTART-UCCUR:/ { uccur = $2 }
+        /^NEEDRESTART-UCEXP:/ { ucexp = $2 }
+        /^NEEDRESTART-SVC:/   { svc[++nsvc] = $2 }
+        /^NEEDRESTART-CONT:/  { sub(/^NEEDRESTART-CONT: */, ""); cont[++ncont] = $0 }
+        /^NEEDRESTART-SESS:/  { sub(/^NEEDRESTART-SESS: */, ""); sess[++nsess] = $0 }
+        END {
+            print "\n==> Kernel:"
+            printf "    Running:  %s\n", kcur
+            if (kexp != "") printf "    Expected: %s\n", kexp
+            printf "    Status:   %s\n", ((kst + 1) in ksta) ? ksta[kst + 1] : "unknown"
+
+            if (ucst == 2) {
+                print "\n==> Microcode:"
+                printf "    Upgrade pending (%s -> %s)\n", uccur, ucexp
+            }
+
+            if (nsvc) {
+                print "\n==> Services using outdated libraries:"
+                for (i = 1; i <= nsvc; i++) print "    " svc[i]
+            }
+            if (ncont) {
+                print "\n==> Containers using outdated libraries:"
+                for (i = 1; i <= ncont; i++) print "    " cont[i]
+            }
+            if (nsess) {
+                print "\n==> User sessions using outdated libraries:"
+                for (i = 1; i <= nsess; i++) print "    " sess[i]
+            }
+            if (!nsvc && !ncont && !nsess)
+                print "\n==> No services, containers or sessions need restarting."
+        }
+    '
+}
+
 ## h2: WSL-Specific Functions
 
 ## `pww` similar to `pw` but from wsl
