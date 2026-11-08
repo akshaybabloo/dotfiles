@@ -703,6 +703,15 @@ function whyrestart() {
     '
 }
 
+## <Aside type="info" title="Requirements">
+## This function requires `rg` (ripgrep) see https://github.com/BurntSushi/ripgrep0 and `fzf` (https://github.com/junegunn/fzf).
+## </Aside>
+## `fif` finds files matching a pattern and previews them using `fzf`
+## Usage: `fif <pattern>`
+fif() {
+  rg --files-with-matches --no-messages "$1" | fzf --preview "rg --ignore-case --pretty --context 10 '$1' {}"
+}
+
 ## h2: WSL-Specific Functions
 
 ## `pww` similar to `pw` but from wsl
