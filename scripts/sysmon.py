@@ -30,8 +30,10 @@ from textual.widgets import DataTable, Footer, LoadingIndicator, Static
 PAGE_SIZE = os.sysconf("SC_PAGE_SIZE")
 REFRESH_SECONDS = 1.0
 
-# Previous /proc/stat sample, so CPU usage is measured across refreshes instead of sleeping.
+# Previous /proc/stat sample (and when it was taken), so CPU usage is measured across refreshes
+# instead of sleeping.
 _prev_cpu_stats = None
+_prev_cpu_time = 0.0
 
 
 def _read_cpu_stats():
@@ -50,14 +52,25 @@ def _read_cpu_stats():
     return stats
 
 
-def cpu_usage(interval=0.5):
-    global _prev_cpu_stats
+def prime_cpu_usage():
+    """Take the baseline /proc/stat sample if there isn't one yet."""
+    global _prev_cpu_stats, _prev_cpu_time
     if _prev_cpu_stats is None:
         _prev_cpu_stats = _read_cpu_stats()
-        time.sleep(interval)
+        _prev_cpu_time = time.monotonic()
+
+
+def cpu_usage(min_interval=0.5):
+    global _prev_cpu_stats, _prev_cpu_time
+    prime_cpu_usage()
+    # Only the first sample can be this close to its baseline; sleep just the remainder.
+    remaining = min_interval - (time.monotonic() - _prev_cpu_time)
+    if remaining > 0:
+        time.sleep(remaining)
     s1 = _prev_cpu_stats
     s2 = _read_cpu_stats()
     _prev_cpu_stats = s2
+    _prev_cpu_time = time.monotonic()
 
     per_core = {}
     for key in s2:
@@ -450,8 +463,10 @@ def render_gpus(gpus):
 
 def collect():
     """Sample everything. Runs in a worker thread so slow nvidia-smi calls don't block input."""
-    overall_cpu, per_core_cpu = cpu_usage()
+    # Take the CPU baseline before nvidia-smi so a slow first call counts towards the sample window.
+    prime_cpu_usage()
     gpus = gpu_info()
+    overall_cpu, per_core_cpu = cpu_usage()
     return {
         "cpu": render_cpu(overall_cpu, per_core_cpu),
         "mem": render_memory(),
