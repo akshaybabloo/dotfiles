@@ -622,10 +622,10 @@ class SysMon(App):
     @work(thread=True, group="refresh")
     def refresh_stats(self) -> None:
         try:
-            snapshot = collect()
+            # call_from_thread blocks until _apply has run, so the next tick can't start early.
+            self.call_from_thread(self._apply, collect())
         finally:
             self._refreshing = False
-        self.call_from_thread(self._apply, snapshot)
 
     def _apply(self, snap) -> None:
         loading = self.query("#loading")
