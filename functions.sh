@@ -629,7 +629,7 @@ function sup() {
     $SUDO apt upgrade "$@"
 }
 
-## ## <Aside type="danger" title="Requirements">
+## <Aside type="danger" title="Requirements">
 ## This function requires `needrestart` - `sudo apt install needrestart`.
 ## </Aside>
 ## `whyrestart` shows what is asking for a system restart: the packages listed in `/var/run/reboot-required.pkgs`, a pending kernel or microcode upgrade, and services or sessions still running outdated libraries (via `needrestart -b`).

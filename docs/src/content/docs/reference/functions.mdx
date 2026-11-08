@@ -87,9 +87,41 @@ location
 
 
 
+### ow
+
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L279)
+
+<Aside type="danger" title="Requirements">
+This function requires `git` - `sudo apt install git`.
+</Aside>
+`ow` opens a web URL in the browser. It accepts `http(s)://`, `ssh://`, `git://`
+and `git@host:user/repo` style URLs, or the name of a git remote. With no
+arguments it opens the current repository's `origin` remote (or the first remote).
+Git `url.<base>.insteadOf` aliases and SSH `Host` aliases from `~/.ssh/config`
+are resolved to their real host.
+
+**Usage: `ow`, `ow upstream`, `ow https://example.com`, `ow git@github.com:user/repo.git`**
+
+
+
+
+### topcu
+
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L345)
+
+<Aside type="danger" title="Requirements">
+This function requires `uv`, see https://docs.astral.sh/uv/getting-started/installation/.
+</Aside>
+`topcu` shows the cuda usage and GPU information using the `sysmon.py` script.
+
+**Usage: `topcu`**
+
+
+
+
 ### tre
 
-[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L278)
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L357)
 
 <Aside type="danger" title="Requirements">
 This function requires `tree` - `sudo apt install tree`.
@@ -106,7 +138,7 @@ small enough for one screen.
 
 ### ginit
 
-[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L293)
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L372)
 
 <Aside type="danger" title="Requirements">
 This function requires `git` - `sudo apt install git`.
@@ -120,7 +152,7 @@ This function requires `git` - `sudo apt install git`.
 
 ### echoerr
 
-[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L306)
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L385)
 
 `echoerr` echoes the first argument to stderr. Useful for printing errors.
 
@@ -131,7 +163,7 @@ This function requires `git` - `sudo apt install git`.
 
 ### dlc
 
-[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L310)
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L389)
 
 `dlc` deletes all lines that start with the specified comment symbol
 
@@ -142,7 +174,7 @@ This function requires `git` - `sudo apt install git`.
 
 ### uuidf
 
-[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L347)
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L426)
 
 Converts all file names in the current directory to some UUID names leaving the extension intact
 
@@ -153,7 +185,7 @@ Converts all file names in the current directory to some UUID names leaving the 
 
 ### snapc
 
-[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L369)
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L448)
 
 `snapc` cleans up old snap versions
 
@@ -164,7 +196,7 @@ Converts all file names in the current directory to some UUID names leaving the 
 
 ### debi
 
-[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L389)
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L468)
 
 `debi` installs a .deb file using `apt install`
 
@@ -175,7 +207,7 @@ Converts all file names in the current directory to some UUID names leaving the 
 
 ### lsu
 
-[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L412)
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L491)
 
 `lsu` lists all USB devices connected to the system
 
@@ -186,7 +218,7 @@ Converts all file names in the current directory to some UUID names leaving the 
 
 ### wrap_text
 
-[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L427)
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L506)
 
 `wrap_text` wraps text to a specified width and indentation
 
@@ -197,7 +229,7 @@ Converts all file names in the current directory to some UUID names leaving the 
 
 ### count
 
-[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L495)
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L574)
 
 `lsinotify` lists inotify watches for each process and displays them in a formatted table
 
@@ -208,12 +240,37 @@ Converts all file names in the current directory to some UUID names leaving the 
 **Usage: `count` or `count <directory>` or `count <file>` or `count *.js`**
 
 
+
+
+### sup
+
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L598)
+
+`sup` updates the system by first updating package indices, then listing upgradable packages, and finally performing the upgrade.
+
+**Usage: `sup`**
+
+
+
+
+### whyrestart
+
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L637)
+
+<Aside type="danger" title="Requirements">
+This function requires `needrestart` - `sudo apt install needrestart`.
+</Aside>
+`whyrestart` shows what is asking for a system restart: the packages listed in `/var/run/reboot-required.pkgs`, a pending kernel or microcode upgrade, and services or sessions still running outdated libraries (via `needrestart -b`).
+
+**Usage: `whyrestart`**
+
+
 ## WSL-Specific Functions
 
 
 ### pww
 
-[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L521)
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L710)
 
 `pww` similar to `pw` but from wsl
 
@@ -224,7 +281,7 @@ Converts all file names in the current directory to some UUID names leaving the 
 
 ### ppw
 
-[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L529)
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L718)
 
 `ppw` similar to `pp` but from wsl
 
@@ -236,7 +293,7 @@ Converts all file names in the current directory to some UUID names leaving the 
 
 ### sd
 
-[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L545)
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L734)
 
 <Aside type="danger" title="Requirements">
 This function requires `shred` - `sudo apt install coreutils`.
@@ -255,7 +312,7 @@ This function requires `shred` - `sudo apt install coreutils`.
 
 ### 7zc
 
-[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L723)
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L912)
 
 <Aside type="danger" title="Requirements">
 This function requires `7zzs`, see https://www.7-zip.org/download.html
@@ -276,7 +333,7 @@ This function requires `7zzs`, see https://www.7-zip.org/download.html
 
 ### 7zip
 
-[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L886)
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L1075)
 
 <Aside type="danger" title="Requirements">
 This function requires `7zzs`, see https://www.7-zip.org/download.html
@@ -297,7 +354,7 @@ This function requires `7zzs`, see https://www.7-zip.org/download.html
 
 ### 7zx
 
-[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L1052)
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L1241)
 
 <Aside type="danger" title="Requirements">
 This function requires `7zzs`, see https://www.7-zip.org/download.html
@@ -319,7 +376,7 @@ For multi-part archives, **always extract the first part** and 7-Zip will automa
 
 ### zc
 
-[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L1293)
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L1482)
 
 <Aside type="danger" title="Requirements">
 This function requires `zstd`. Install it from `sudo apt install zstd` or download it from [GitHub Release](https://github.com/facebook/zstd/releases).
@@ -338,7 +395,7 @@ This function requires `zstd`. Install it from `sudo apt install zstd` or downlo
 
 ### zx
 
-[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L1401)
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L1590)
 
 <Aside type="danger" title="Requirements">
 This function requires `zstd`. Install it from `sudo apt install zstd` or download it from [GitHub Release](https://github.com/facebook/zstd/releases).
@@ -352,7 +409,7 @@ This function requires `zstd`. Install it from `sudo apt install zstd` or downlo
 
 ### tgc
 
-[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L1435)
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L1624)
 
 `tgc` compresses one or more files/directories into a single gzip-compressed tar archive
 
@@ -368,7 +425,7 @@ This function requires `zstd`. Install it from `sudo apt install zstd` or downlo
 
 ### tgx
 
-[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L1536)
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L1725)
 
 `tgx` extracts a gzip compressed tar file
 
@@ -380,7 +437,7 @@ This function requires `zstd`. Install it from `sudo apt install zstd` or downlo
 
 ### gclone
 
-[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L1566)
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L1755)
 
 `gclone` clones a git repository and cd's into it
 
@@ -391,7 +448,7 @@ This function requires `zstd`. Install it from `sudo apt install zstd` or downlo
 
 ### gsubd
 
-[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L1585)
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L1774)
 
 `gsubd` removed the current Git submodule and its entry in `.gitmodules`
 
@@ -402,7 +459,7 @@ This function requires `zstd`. Install it from `sudo apt install zstd` or downlo
 
 ### gclean
 
-[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L1621)
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L1810)
 
 `gclean` removes all untracked files, including ignored files and directories
 
@@ -413,7 +470,7 @@ This function requires `zstd`. Install it from `sudo apt install zstd` or downlo
 
 ### gcl
 
-[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L1635)
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L1824)
 
 `gcl` Generates a changelog from the commit history
 
@@ -424,7 +481,7 @@ This function requires `zstd`. Install it from `sudo apt install zstd` or downlo
 
 ### gbranch
 
-[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L1655)
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L1844)
 
 `gbranch` creates a new git branch and switches to it. Adds a "-" if spaces are present in the branch name.
 
@@ -438,7 +495,7 @@ This function requires `zstd`. Install it from `sudo apt install zstd` or downlo
 
 ### dot
 
-[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L1696)
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L1885)
 
 `dot` prints help for the dotfiles and can be used to run the dotfiles functions
 
@@ -449,7 +506,7 @@ This function requires `zstd`. Install it from `sudo apt install zstd` or downlo
 
 ### dotu
 
-[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L1723)
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L1912)
 
 `dotu` updates the dotfiles to the latest main branch
 
@@ -460,7 +517,7 @@ This function requires `zstd`. Install it from `sudo apt install zstd` or downlo
 
 ### dotub
 
-[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L1825)
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L2014)
 
 `dotub` updates binary files only to its latest version from GitHub releases.
 
@@ -471,7 +528,7 @@ This function requires `zstd`. Install it from `sudo apt install zstd` or downlo
 
 ### dotls
 
-[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L1873)
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L2062)
 
 `dotls` lists all the aliases and functions in the dotfiles with their descriptions
 
