@@ -621,7 +621,9 @@ class SysMon(App):
             if snap[wid] is not None:
                 widget.update(snap[wid])
 
-        self._commands = {p["pid"]: (p["comm"], p["full_cmd"]) for p in snap["gpu_procs"] + snap["top_procs"]}
+        # GPU entries go last so they win for a PID in both tables: their name is the full exe path
+        # from nvidia-smi rather than the 15-char kernel comm.
+        self._commands = {p["pid"]: (p["comm"], p["full_cmd"]) for p in snap["top_procs"] + snap["gpu_procs"]}
 
         gpu_table = self.query_one("#gpu-procs", ProcessTable)
         gpu_table.display = bool(snap["gpu_procs"])
