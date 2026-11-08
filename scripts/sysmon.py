@@ -149,18 +149,17 @@ def _cmdline(pid):
         return []
     if not raw:
         return []
-    parts = [p.decode("utf-8", errors="replace") for p in raw.split(b"\0") if p]
-    # Some programs (Electron, Chromium, setproctitle users) overwrite argv with one space-joined
-    # string, so treat a lone argument containing spaces as the whole command line.
-    if len(parts) == 1 and " " in parts[0]:
-        parts = parts[0].split()
-    return parts
+    return [p.decode("utf-8", errors="replace") for p in raw.split(b"\0") if p]
 
 
 def _format_cmd(parts, comm, max_len=60):
     """btop-like compact cmdline: 'python script.py --flag', kernel threads in brackets."""
     if not parts:
         return f"[{comm}]"
+    # Some programs (Electron, Chromium, setproctitle users) overwrite argv with one space-joined
+    # string; split it so the compact view can shorten paths per argument.
+    if len(parts) == 1 and " " in parts[0]:
+        parts = parts[0].split()
     # Strip "uv run" / "uv run python" wrapper so the actual script is visible.
     if parts and os.path.basename(parts[0]) == "uv" and len(parts) > 1 and parts[1] == "run":
         parts = parts[2:]
@@ -181,7 +180,13 @@ def _format_cmd(parts, comm, max_len=60):
 
 def _full_cmd(parts, comm):
     """Full, shell-quoted command line suitable for copy/paste."""
-    return shlex.join(parts) if parts else f"[{comm}]"
+    if not parts:
+        return f"[{comm}]"
+    if len(parts) == 1:
+        # Either a bare executable or an argv rewritten into one string (setproctitle, Electron).
+        # Splitting or quoting it would misrepresent it, so show it verbatim.
+        return parts[0]
+    return shlex.join(parts)
 
 
 def top_processes(n=5):
