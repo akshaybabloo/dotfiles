@@ -275,7 +275,9 @@ def gpu_processes():
             stderr=subprocess.DEVNULL,
             text=True,
         )
-        procs = []
+        # nvidia-smi prints one line per GPU context, so a process using several GPUs appears more
+        # than once. Merge by PID (summing VRAM) so each process gets a single row.
+        procs = {}
         for line in out.strip().split("\n"):
             if not line.strip():
                 continue
@@ -284,18 +286,24 @@ def gpu_processes():
             if len(parts) < 3:
                 continue
             pid = parts[0]
+            mem = _num(parts[1])
+            if pid in procs:
+                prev = procs[pid]["mem"]
+                procs[pid]["mem"] = None if prev is None or mem is None else prev + mem
+                continue
             argv = _cmdline(pid)
-            procs.append(
-                {
-                    "pid": pid,
-                    "comm": os.path.basename(parts[2]),
-                    "mem_mb": parts[1],
-                    "cmd": _format_cmd(argv, os.path.basename(parts[2])),
-                    # nvidia-smi's name is the full exe path, a better fallback than comm.
-                    "full_cmd": _full_cmd(argv, parts[2]),
-                }
-            )
-        return procs
+            procs[pid] = {
+                "pid": pid,
+                "comm": os.path.basename(parts[2]),
+                "mem": mem,
+                "cmd": _format_cmd(argv, os.path.basename(parts[2])),
+                # nvidia-smi's name is the full exe path, a better fallback than comm.
+                "full_cmd": _full_cmd(argv, parts[2]),
+            }
+        for p in procs.values():
+            mem = p.pop("mem")
+            p["mem_mb"] = f"{mem:.0f}" if mem is not None else "N/A"
+        return list(procs.values())
     except FileNotFoundError, subprocess.CalledProcessError:
         return []
 
