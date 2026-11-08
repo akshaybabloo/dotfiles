@@ -1,27 +1,34 @@
-"""System resource monitor. Run with: uv run python sysmon.py"""
+"""System resource monitor. Run with: uv run python sysmon.py
+
+Click a process row (or select it and press Enter) to see its full command line.
+"""
 
 import functools
 import os
-import select
+import shlex
 import shutil
 import subprocess
 import sys
-import termios
 import time
-import tty
 
 if sys.stdout.encoding != "utf-8":
     sys.stdout.reconfigure(encoding="utf-8")
     sys.stderr.reconfigure(encoding="utf-8")
 
 from rich.columns import Columns
-from rich.console import Console, Group
-from rich.live import Live
+from rich.console import Group
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
+from textual import events, work
+from textual.app import App, ComposeResult
+from textual.containers import Vertical, VerticalScroll
+from textual.coordinate import Coordinate
+from textual.screen import ModalScreen
+from textual.widgets import DataTable, Footer, LoadingIndicator, Static
 
 PAGE_SIZE = os.sysconf("SC_PAGE_SIZE")
+REFRESH_SECONDS = 1.0
 
 # Previous /proc/stat sample, so CPU usage is measured across refreshes instead of sleeping.
 _prev_cpu_stats = None
@@ -138,11 +145,16 @@ def _cmdline(pid):
     try:
         with open(f"/proc/{pid}/cmdline", "rb") as f:
             raw = f.read()
-    except (FileNotFoundError, PermissionError, ProcessLookupError):
+    except FileNotFoundError, PermissionError, ProcessLookupError:
         return []
     if not raw:
         return []
-    return [p.decode("utf-8", errors="replace") for p in raw.split(b"\0") if p]
+    parts = [p.decode("utf-8", errors="replace") for p in raw.split(b"\0") if p]
+    # Some programs (Electron, Chromium, setproctitle users) overwrite argv with one space-joined
+    # string, so treat a lone argument containing spaces as the whole command line.
+    if len(parts) == 1 and " " in parts[0]:
+        parts = parts[0].split()
+    return parts
 
 
 def _format_cmd(parts, comm, max_len=60):
@@ -167,6 +179,11 @@ def _format_cmd(parts, comm, max_len=60):
     return cmd
 
 
+def _full_cmd(parts, comm):
+    """Full, shell-quoted command line suitable for copy/paste."""
+    return shlex.join(parts) if parts else f"[{comm}]"
+
+
 def top_processes(n=5):
     procs = []
     try:
@@ -182,14 +199,16 @@ def top_processes(n=5):
                 rest = data[close + 2 :].split()  # rest[0] is field 3 (state)
                 rss_mb = int(rest[21]) * PAGE_SIZE / 1024 / 1024
                 procs.append({"pid": pid, "comm": comm, "rss_mb": rss_mb})
-            except (FileNotFoundError, PermissionError, ProcessLookupError, IndexError, ValueError):
+            except FileNotFoundError, PermissionError, ProcessLookupError, IndexError, ValueError:
                 continue
     except FileNotFoundError:
         return []
     procs.sort(key=lambda p: p["rss_mb"], reverse=True)
     top = procs[:n]
     for p in top:
-        p["cmd"] = _format_cmd(_cmdline(p["pid"]), p["comm"])
+        argv = _cmdline(p["pid"])
+        p["cmd"] = _format_cmd(argv, p["comm"])
+        p["full_cmd"] = _full_cmd(argv, p["comm"])
     return top
 
 
@@ -205,7 +224,7 @@ def _num(s):
 def _cuda_version():
     try:
         header = subprocess.check_output(["nvidia-smi"], stderr=subprocess.DEVNULL, text=True)
-    except (FileNotFoundError, subprocess.CalledProcessError):
+    except FileNotFoundError, subprocess.CalledProcessError:
         return ""
     for hline in header.split("\n"):
         if "CUDA Version:" in hline:
@@ -224,7 +243,7 @@ def gpu_info():
             stderr=subprocess.DEVNULL,
             text=True,
         )
-    except (FileNotFoundError, subprocess.CalledProcessError):
+    except FileNotFoundError, subprocess.CalledProcessError:
         return []
     cuda_ver = _cuda_version()
     gpus = []
@@ -265,10 +284,19 @@ def gpu_processes():
             if len(parts) < 3:
                 continue
             pid = parts[0]
-            cmd = _format_cmd(_cmdline(pid), os.path.basename(parts[2]))
-            procs.append({"pid": pid, "mem_mb": parts[1], "cmd": cmd})
+            argv = _cmdline(pid)
+            procs.append(
+                {
+                    "pid": pid,
+                    "comm": os.path.basename(parts[2]),
+                    "mem_mb": parts[1],
+                    "cmd": _format_cmd(argv, os.path.basename(parts[2])),
+                    # nvidia-smi's name is the full exe path, a better fallback than comm.
+                    "full_cmd": _full_cmd(argv, parts[2]),
+                }
+            )
         return procs
-    except (FileNotFoundError, subprocess.CalledProcessError):
+    except FileNotFoundError, subprocess.CalledProcessError:
         return []
 
 
@@ -321,161 +349,316 @@ def make_core_text(core_id, pct, cw=2, bar_w=8):
     return text
 
 
-def build_display():
-    """Build the full display as a rich Group for use with Live."""
-    renderables = []
-
-    # CPU — sample
-    overall_cpu, per_core_cpu = cpu_usage()
-    cores = len(per_core_cpu)
+def render_cpu(overall_cpu, per_core_cpu):
     load1, load5, load15 = load_avg()
-    up = uptime_info()
-
-    # Memory
-    mem_total, mem_used, swap_total, swap_used = mem_info()
-    mem_pct = mem_used / mem_total * 100
-
-    # Disk
-    disk_total, disk_used = disk_info()
-    disk_pct = disk_used / disk_total * 100
-
-    # === CPU Panel ===
-    cpu_lines = []
-    cpu_lines.append(
+    cpu_lines = [
         Text.assemble(
             ("Load: ", "dim"),
             (f"{load1} {load5} {load15}", "bold"),
             ("  Up: ", "dim"),
-            (up, "bold"),
-        )
-    )
-    cpu_lines.append(make_bar_text("All", overall_cpu))
-    cpu_group = Text("\n").join(cpu_lines)
-    renderables.append(Panel(cpu_group, title=f"[bold]CPU [cyan]{cores}[/cyan] cores[/bold]", border_style="blue"))
+            (uptime_info(), "bold"),
+        ),
+        make_bar_text("All", overall_cpu),
+    ]
+    cores = len(per_core_cpu)
+    panel = Panel(Text("\n").join(cpu_lines), title=f"[bold]CPU [cyan]{cores}[/cyan] cores[/bold]", border_style="blue")
 
-    # Per-core grid
     core_ids = sorted(per_core_cpu.keys())
     cw = len(str(max(core_ids, default=0)))
     bar_w = 10 if cores <= 32 else 6 if cores <= 64 else 4
-    core_renderables = []
-    for c in core_ids:
-        core_renderables.append(make_core_text(c, per_core_cpu[c], cw=cw, bar_w=bar_w))
-    renderables.append(Columns(core_renderables, equal=True, expand=True))
+    grid = Columns([make_core_text(c, per_core_cpu[c], cw=cw, bar_w=bar_w) for c in core_ids], equal=True, expand=True)
+    return Group(panel, grid)
 
-    # === Memory Panel ===
-    mem_lines = []
-    mem_lines.append(make_bar_text("RAM", mem_pct, f"{mem_used:.1f} / {mem_total:.1f} GB"))
+
+def render_memory():
+    mem_total, mem_used, swap_total, swap_used = mem_info()
+    disk_total, disk_used = disk_info()
+    mem_lines = [make_bar_text("RAM", mem_used / mem_total * 100, f"{mem_used:.1f} / {mem_total:.1f} GB")]
     if swap_total > 0:
-        swap_pct = swap_used / swap_total * 100
-        mem_lines.append(make_bar_text("Swap", swap_pct, f"{swap_used:.1f} / {swap_total:.1f} GB"))
-    mem_lines.append(make_bar_text("Disk", disk_pct, f"{disk_used:.0f} / {disk_total:.0f} GB"))
-    mem_group_text = Text("\n").join(mem_lines)
-    renderables.append(Panel(mem_group_text, title="[bold]Memory & Disk[/bold]", border_style="green"))
+        mem_lines.append(make_bar_text("Swap", swap_used / swap_total * 100, f"{swap_used:.1f} / {swap_total:.1f} GB"))
+    mem_lines.append(make_bar_text("Disk", disk_used / disk_total * 100, f"{disk_used:.0f} / {disk_total:.0f} GB"))
+    return Panel(Text("\n").join(mem_lines), title="[bold]Memory & Disk[/bold]", border_style="green")
 
-    # === Network ===
+
+def render_network():
     interfaces = net_info()
-    if interfaces:
-        net_table = Table(show_header=True, header_style="bold", box=None, pad_edge=False)
-        net_table.add_column("Interface", style="cyan")
-        net_table.add_column("RX", justify="right")
-        net_table.add_column("TX", justify="right")
-        for iface in interfaces:
-            net_table.add_row(iface["name"], fmt_gb(iface["rx"]), fmt_gb(iface["tx"]))
-        renderables.append(Panel(net_table, title="[bold]Network[/bold]", border_style="magenta"))
+    if not interfaces:
+        return None
+    net_table = Table(show_header=True, header_style="bold", box=None, pad_edge=False)
+    net_table.add_column("Interface", style="cyan")
+    net_table.add_column("RX", justify="right")
+    net_table.add_column("TX", justify="right")
+    for iface in interfaces:
+        net_table.add_row(iface["name"], fmt_gb(iface["rx"]), fmt_gb(iface["tx"]))
+    return Panel(net_table, title="[bold]Network[/bold]", border_style="magenta")
 
-    # === GPU ===
+
+def render_gpus(gpus):
+    if not gpus:
+        return None
+    panels = []
+    for i, g in enumerate(gpus):
+        gmem_pct = g["mem_used"] / g["mem_total"] * 100 if g["mem_total"] > 0 else 0.0
+        gpu_lines = []
+
+        info_parts = []
+        if g.get("cuda"):
+            info_parts.append(f"CUDA {g['cuda']}")
+        if g.get("driver"):
+            info_parts.append(f"Driver {g['driver']}")
+        if info_parts:
+            gpu_lines.append(Text.assemble(("  ", ""), (" | ".join(info_parts), "dim")))
+
+        if g["util"] is not None:
+            gpu_lines.append(make_bar_text("Use", g["util"]))
+        gpu_lines.append(make_bar_text("VRAM", gmem_pct, f"{g['mem_used']:.1f} / {g['mem_total']:.1f} GB"))
+
+        stats = Text.assemble(
+            ("  Temp: ", "dim"),
+            (fmt_unit(g["temp"], "C"), "bold"),
+            ("  Power: ", "dim"),
+            (fmt_unit(g["power"], "W"), "bold"),
+            (f" / {fmt_unit(g['power_limit'], 'W')}", "dim"),
+        )
+        if g["fan"] is not None:
+            stats.append("  Fan: ", style="dim")
+            stats.append(fmt_unit(g["fan"], "%"), style="bold")
+        gpu_lines.append(stats)
+
+        panels.append(
+            Panel(
+                Text("\n").join(gpu_lines),
+                title=f"[bold]GPU {i}: [cyan]{g['name']}[/cyan][/bold]",
+                border_style="yellow",
+            )
+        )
+    return Group(*panels)
+
+
+def collect():
+    """Sample everything. Runs in a worker thread so slow nvidia-smi calls don't block input."""
+    overall_cpu, per_core_cpu = cpu_usage()
     gpus = gpu_info()
-    if gpus:
-        for i, g in enumerate(gpus):
-            gmem_pct = g["mem_used"] / g["mem_total"] * 100 if g["mem_total"] > 0 else 0.0
-            gpu_lines = []
-
-            info_parts = []
-            if g.get("cuda"):
-                info_parts.append(f"CUDA {g['cuda']}")
-            if g.get("driver"):
-                info_parts.append(f"Driver {g['driver']}")
-            if info_parts:
-                gpu_lines.append(Text.assemble(("  ", ""), (" | ".join(info_parts), "dim")))
-
-            if g["util"] is not None:
-                gpu_lines.append(make_bar_text("Use", g["util"]))
-            gpu_lines.append(make_bar_text("VRAM", gmem_pct, f"{g['mem_used']:.1f} / {g['mem_total']:.1f} GB"))
-
-            stats = Text.assemble(
-                ("  Temp: ", "dim"),
-                (fmt_unit(g["temp"], "C"), "bold"),
-                ("  Power: ", "dim"),
-                (fmt_unit(g["power"], "W"), "bold"),
-                (f" / {fmt_unit(g['power_limit'], 'W')}", "dim"),
-            )
-            if g["fan"] is not None:
-                stats.append("  Fan: ", style="dim")
-                stats.append(fmt_unit(g["fan"], "%"), style="bold")
-            gpu_lines.append(stats)
-
-            gpu_group_text = Text("\n").join(gpu_lines)
-            renderables.append(
-                Panel(gpu_group_text, title=f"[bold]GPU {i}: [cyan]{g['name']}[/cyan][/bold]", border_style="yellow")
-            )
-
-        gprocs = gpu_processes()
-        if gprocs:
-            gp_table = Table(show_header=True, header_style="bold", box=None, pad_edge=False)
-            gp_table.add_column("PID", justify="right", style="cyan")
-            gp_table.add_column("VRAM (MB)", justify="right")
-            gp_table.add_column("Command", overflow="ellipsis", no_wrap=True)
-            for p in gprocs:
-                gp_table.add_row(p["pid"], p["mem_mb"], p["cmd"])
-            renderables.append(Panel(gp_table, title="[bold]GPU Processes[/bold]", border_style="yellow"))
-
-    # === Top Processes ===
-    top = top_processes(5)
-    if top:
-        proc_table = Table(show_header=True, header_style="bold", box=None, pad_edge=False)
-        proc_table.add_column("PID", justify="right", style="cyan")
-        proc_table.add_column("RAM (MB)", justify="right")
-        proc_table.add_column("Command", overflow="ellipsis", no_wrap=True)
-        for p in top:
-            proc_table.add_row(p["pid"], f"{p['rss_mb']:.0f}", p["cmd"])
-        renderables.append(Panel(proc_table, title="[bold]Top Processes by RAM[/bold]", border_style="red"))
-
-    renderables.append(Text("Press q to quit", style="dim italic", justify="center"))
-
-    return Group(*renderables)
+    return {
+        "cpu": render_cpu(overall_cpu, per_core_cpu),
+        "mem": render_memory(),
+        "net": render_network(),
+        "gpu": render_gpus(gpus),
+        "gpu_procs": gpu_processes() if gpus else [],
+        "top_procs": top_processes(5),
+    }
 
 
-def main():
-    console = Console()
+class ProcessTable(DataTable):
+    """DataTable that opens a row with a single click instead of highlight-then-click."""
 
-    fd = sys.stdin.fileno()
-    try:
-        old_settings = termios.tcgetattr(fd)
-    except (termios.error, OSError):
-        # stdin isn't a tty (piped/redirected) — fall back to plain sleep loop.
-        old_settings = None
+    def _on_click(self, event: events.Click) -> None:
+        # Runs before DataTable's own click handler. Moving the cursor to the clicked row first
+        # makes DataTable treat the click as a click on the highlighted row and post RowSelected.
+        meta = event.style.meta
+        if meta.get("row", -1) >= 0 and "column" in meta:
+            self.cursor_coordinate = Coordinate(meta["row"], meta["column"])
 
-    try:
-        if old_settings is not None:
-            tty.setcbreak(fd)
 
-        with Live(build_display(), console=console, auto_refresh=False, screen=True) as live:
-            while True:
-                if old_settings is not None:
-                    rlist, _, _ = select.select([fd], [], [], 1.0)
-                    # Read raw bytes: buffered sys.stdin can swallow multi-byte input (arrow keys) past select.
-                    if rlist and b"q" in os.read(fd, 64).lower():
-                        break
-                else:
-                    time.sleep(1)
-                live.update(build_display(), refresh=True)
-    finally:
-        if old_settings is not None:
-            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+class CommandScreen(ModalScreen):
+    """Popup showing a process's full command line."""
+
+    BINDINGS = [("escape,q,enter", "dismiss", "Close"), ("c", "copy", "Copy")]
+
+    DEFAULT_CSS = """
+    CommandScreen {
+        align: center middle;
+    }
+    #dialog {
+        width: 90%;
+        max-width: 140;
+        height: auto;
+        max-height: 80%;
+        border: round $accent;
+        border-title-style: bold;
+        background: $surface;
+        padding: 1 2;
+    }
+    #cmd-scroll {
+        height: auto;
+    }
+    #cmd-hint {
+        color: $text-muted;
+        margin-top: 1;
+    }
+    """
+
+    def __init__(self, pid, comm, command):
+        super().__init__()
+        self.pid = pid
+        self.comm = comm
+        self.command = command
+
+    def compose(self) -> ComposeResult:
+        with Vertical(id="dialog") as dialog:
+            dialog.border_title = f"PID {self.pid} · {self.comm}"
+            with VerticalScroll(id="cmd-scroll"):
+                yield Static(Text(self.command, overflow="fold"), id="cmd")
+            yield Static("c copy · esc close", id="cmd-hint")
+
+    def on_click(self, event: events.Click) -> None:
+        # Clicking the dimmed backdrop closes the popup.
+        if event.widget is self:
+            self.dismiss()
+
+    def action_copy(self) -> None:
+        self.app.copy_to_clipboard(self.command)
+        self.notify("Copied command to clipboard")
+
+
+class SysMon(App):
+    TITLE = "sysmon"
+    BINDINGS = [("q", "quit", "Quit")]
+
+    CSS = """
+    #loading {
+        align: center middle;
+    }
+    #loading LoadingIndicator {
+        height: 1;
+    }
+    #loading-label {
+        width: 100%;
+        text-align: center;
+        color: $text-muted;
+    }
+    #body {
+        display: none;
+        padding: 0 1;
+    }
+    ProcessTable {
+        height: auto;
+        max-height: 16;
+        border: round red;
+        border-title-style: bold;
+        border-title-color: $text;
+    }
+    ProcessTable:focus {
+        border: round red;
+    }
+    #gpu-procs, #gpu-procs:focus {
+        border: round yellow;
+    }
+    #hint {
+        color: $text-muted;
+        text-style: italic;
+        text-align: center;
+    }
+    """
+
+    def compose(self) -> ComposeResult:
+        # Shown until the first sample lands; a cold nvidia-smi can take a few seconds.
+        with Vertical(id="loading"):
+            yield LoadingIndicator()
+            yield Static("Sampling…", id="loading-label")
+        with VerticalScroll(id="body"):
+            yield Static(id="cpu")
+            yield Static(id="mem")
+            yield Static(id="net")
+            yield Static(id="gpu")
+            yield ProcessTable(id="gpu-procs", cursor_type="row", zebra_stripes=True)
+            yield ProcessTable(id="top-procs", cursor_type="row", zebra_stripes=True)
+            yield Static("Click a process (or select it and press Enter) to see its full command", id="hint")
+        yield Footer()
+
+    def on_mount(self) -> None:
+        gpu_table = self.query_one("#gpu-procs", ProcessTable)
+        gpu_table.border_title = "GPU Processes"
+        gpu_table.add_columns("PID", "VRAM (MB)", "Command")
+
+        top_table = self.query_one("#top-procs", ProcessTable)
+        top_table.border_title = "Top Processes by RAM"
+        top_table.add_columns("PID", "RAM (MB)", "Command")
+
+        for wid in ("#net", "#gpu", "#gpu-procs"):
+            self.query_one(wid).display = False
+
+        # pid -> (comm, full command) for every process currently listed.
+        self._commands = {}
+        self._refreshing = False
+        self._tick()
+        self.set_interval(REFRESH_SECONDS, self._tick)
+
+    def _tick(self) -> None:
+        # Skip ticks while a sample is still in flight (a cold nvidia-smi can take seconds while
+        # the GPU wakes up) rather than cancelling it, which would discard every slow sample.
+        if not self._refreshing:
+            self._refreshing = True
+            self.refresh_stats()
+
+    @work(thread=True, group="refresh")
+    def refresh_stats(self) -> None:
+        try:
+            snapshot = collect()
+        finally:
+            self._refreshing = False
+        self.call_from_thread(self._apply, snapshot)
+
+    def _apply(self, snap) -> None:
+        loading = self.query("#loading")
+        if loading:
+            loading.remove()
+            self.query_one("#body").display = True
+
+        self.query_one("#cpu", Static).update(snap["cpu"])
+        self.query_one("#mem", Static).update(snap["mem"])
+        for wid in ("net", "gpu"):
+            widget = self.query_one(f"#{wid}", Static)
+            widget.display = snap[wid] is not None
+            if snap[wid] is not None:
+                widget.update(snap[wid])
+
+        self._commands = {p["pid"]: (p["comm"], p["full_cmd"]) for p in snap["gpu_procs"] + snap["top_procs"]}
+
+        gpu_table = self.query_one("#gpu-procs", ProcessTable)
+        gpu_table.display = bool(snap["gpu_procs"])
+        self._fill_table(
+            gpu_table,
+            [
+                (
+                    p["pid"],
+                    (Text(p["pid"], style="cyan", justify="right"), Text(p["mem_mb"], justify="right"), p["cmd"]),
+                )
+                for p in snap["gpu_procs"]
+            ],
+        )
+        self._fill_table(
+            self.query_one("#top-procs", ProcessTable),
+            [
+                (
+                    p["pid"],
+                    (
+                        Text(p["pid"], style="cyan", justify="right"),
+                        Text(f"{p['rss_mb']:.0f}", justify="right"),
+                        p["cmd"],
+                    ),
+                )
+                for p in snap["top_procs"]
+            ],
+        )
+
+    @staticmethod
+    def _fill_table(table, rows) -> None:
+        """Replace table rows, keeping the cursor on the same PID as rows re-sort."""
+        selected = None
+        if table.row_count:
+            selected = table.coordinate_to_cell_key(table.cursor_coordinate).row_key.value
+        table.clear()
+        for key, cells in rows:
+            table.add_row(*cells, key=key)
+        if selected is not None and selected in table.rows:
+            table.move_cursor(row=table.get_row_index(selected), animate=False)
+
+    def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
+        pid = event.row_key.value
+        comm, command = self._commands.get(pid, ("?", _full_cmd(_cmdline(pid), "?")))
+        self.push_screen(CommandScreen(pid, comm, command))
 
 
 if __name__ == "__main__":
-    try:
-        main()
-    except KeyboardInterrupt:
-        pass
+    SysMon().run()
