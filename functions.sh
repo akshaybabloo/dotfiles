@@ -704,12 +704,62 @@ function whyrestart() {
 }
 
 ## <Aside type="danger" title="Requirements">
-## This function requires `rg` (ripgrep) see https://github.com/BurntSushi/ripgrep0 and `fzf` (https://github.com/junegunn/fzf).
+## This function requires `rg` (ripgrep) see https://github.com/BurntSushi/ripgrep and `fzf` (https://github.com/junegunn/fzf).
 ## </Aside>
-## `fif` finds files matching a pattern and previews them using `fzf`
-## Usage: `fif <pattern>`
-fif() {
-  rg --files-with-matches --no-messages "$1" | fzf --preview "rg --ignore-case --pretty --context 10 '$1' {}"
+## `fif` finds files whose contents match a pattern and lets you pick them with `fzf`, previewing
+## the matching lines. Without a pattern it searches live: type in `fzf` and the file list updates
+## as you go. With a pattern it searches once and typing narrows the file names. The pattern is a
+## ripgrep regex and is case-insensitive unless it contains an uppercase letter. The selected files
+## are printed, so the output can be piped. In `fzf`, `Tab` selects several files and `Ctrl-O`
+## opens the highlighted file in `$EDITOR`.
+## Usage: `fif [pattern] [path ...]`
+## Examples:
+##   `fif`                   Search file contents live, under the current directory
+##   `fif '' src`            Search live, but only in `src`
+##   `fif TODO`              Files under the current directory that mention TODO
+##   `fif 'fn \w+' src`      Files in `src` matching a regex
+##   `vim $(fif config)`     Open the selected files in vim
+function fif() {
+    if ! command -v rg &> /dev/null || ! command -v fzf &> /dev/null; then
+        echoerr "fif requires rg (ripgrep) and fzf"
+        return 1
+    fi
+
+    local pattern=$1
+    [[ $# -gt 0 ]] && shift
+
+    local fzf_opts=(
+        --multi
+        --preview-window 'right,60%,wrap'
+        --header 'Tab: select · Ctrl-O: open in $EDITOR · Enter: print'
+        --bind 'ctrl-o:execute(${EDITOR:-vi} {} < /dev/tty > /dev/tty)'
+    )
+
+    if [[ -z $pattern ]]; then
+        # Live mode: fzf doesn't filter (`--disabled`); each change to the query re-runs rg with it.
+        # {q} is quoted by fzf; the paths are quoted here since they're baked into the command.
+        local paths=""
+        [[ $# -gt 0 ]] && paths=$(printf '%q ' "$@")
+        local search="rg --files-with-matches --smart-case --no-messages -e {q} -- $paths 2> /dev/null"
+        # Empty input so fzf starts with an empty list rather than running its default file finder
+        : | fzf "${fzf_opts[@]}" --disabled --prompt 'Search> ' \
+            --bind "change:reload:sleep 0.1; [ -n {q} ] && $search || true" \
+            --preview 'rg --smart-case --pretty --context 5 -e {q} -- {} 2> /dev/null'
+        return
+    fi
+
+    # `-e` so a pattern starting with `-` isn't read as a flag
+    local files
+    files=$(rg --files-with-matches --smart-case --no-messages -e "$pattern" -- "$@")
+    if [[ -z $files ]]; then
+        echoerr "No files match: $pattern"
+        return 1
+    fi
+
+    # The pattern reaches the preview through the environment rather than being pasted into the
+    # command, so quotes or `$` in it can't break (or inject into) the preview's shell
+    printf '%s\n' "$files" | FIF_PATTERN="$pattern" fzf "${fzf_opts[@]}" \
+        --preview 'rg --smart-case --pretty --context 5 -e "$FIF_PATTERN" -- {}'
 }
 
 ## h2: WSL-Specific Functions

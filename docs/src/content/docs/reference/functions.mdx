@@ -265,19 +265,39 @@ This function requires `needrestart` - `sudo apt install needrestart`.
 **Usage: `whyrestart`**
 
 
+
+
+### fif
+
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L722)
+
+<Aside type="danger" title="Requirements">
+This function requires `rg` (ripgrep) see https://github.com/BurntSushi/ripgrep and `fzf` (https://github.com/junegunn/fzf).
+</Aside>
+`fif` finds files whose contents match a pattern and lets you pick them with `fzf`, previewing
+the matching lines. Without a pattern it searches live: type in `fzf` and the file list updates
+as you go. With a pattern it searches once and typing narrows the file names. The pattern is a
+ripgrep regex and is case-insensitive unless it contains an uppercase letter. The selected files
+are printed, so the output can be piped. In `fzf`, `Tab` selects several files and `Ctrl-O`
+opens the highlighted file in `$EDITOR`.
+
+**Usage: `fif [pattern] [path ...]`**
+
+
+**Examples:**
+
+`fif`                   Search file contents live, under the current directory
+`fif '' src`            Search live, but only in `src`
+`fif TODO`              Files under the current directory that mention TODO
+`fif 'fn \w+' src`      Files in `src` matching a regex
+`vim $(fif config)`     Open the selected files in vim
+
 ## WSL-Specific Functions
 
 
 ### pww
 
-[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L719)
-
-<Aside type="danger" title="Requirements">
-This function requires `rg` (ripgrep) see https://github.com/BurntSushi/ripgrep0 and `fzf` (https://github.com/junegunn/fzf).
-</Aside>
-`fif` finds files matching a pattern and previews them using `fzf`
-
-**Usage: `fif <pattern>`**
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L769)
 
 `pww` similar to `pw` but from wsl
 
@@ -288,7 +308,7 @@ This function requires `rg` (ripgrep) see https://github.com/BurntSushi/ripgrep0
 
 ### ppw
 
-[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L727)
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L777)
 
 `ppw` similar to `pp` but from wsl
 
@@ -300,7 +320,7 @@ This function requires `rg` (ripgrep) see https://github.com/BurntSushi/ripgrep0
 
 ### sd
 
-[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L743)
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L793)
 
 <Aside type="danger" title="Requirements">
 This function requires `shred` - `sudo apt install coreutils`.
@@ -319,7 +339,7 @@ This function requires `shred` - `sudo apt install coreutils`.
 
 ### 7zc
 
-[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L921)
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L971)
 
 <Aside type="danger" title="Requirements">
 This function requires `7zzs`, see https://www.7-zip.org/download.html
@@ -340,7 +360,7 @@ This function requires `7zzs`, see https://www.7-zip.org/download.html
 
 ### 7zip
 
-[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L1084)
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L1134)
 
 <Aside type="danger" title="Requirements">
 This function requires `7zzs`, see https://www.7-zip.org/download.html
@@ -361,7 +381,7 @@ This function requires `7zzs`, see https://www.7-zip.org/download.html
 
 ### 7zx
 
-[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L1250)
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L1300)
 
 <Aside type="danger" title="Requirements">
 This function requires `7zzs`, see https://www.7-zip.org/download.html
@@ -383,7 +403,7 @@ For multi-part archives, **always extract the first part** and 7-Zip will automa
 
 ### zc
 
-[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L1491)
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L1541)
 
 <Aside type="danger" title="Requirements">
 This function requires `zstd`. Install it from `sudo apt install zstd` or download it from [GitHub Release](https://github.com/facebook/zstd/releases).
@@ -402,7 +422,7 @@ This function requires `zstd`. Install it from `sudo apt install zstd` or downlo
 
 ### zx
 
-[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L1599)
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L1649)
 
 <Aside type="danger" title="Requirements">
 This function requires `zstd`. Install it from `sudo apt install zstd` or download it from [GitHub Release](https://github.com/facebook/zstd/releases).
@@ -416,7 +436,7 @@ This function requires `zstd`. Install it from `sudo apt install zstd` or downlo
 
 ### tgc
 
-[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L1633)
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L1683)
 
 `tgc` compresses one or more files/directories into a single gzip-compressed tar archive
 
@@ -432,7 +452,7 @@ This function requires `zstd`. Install it from `sudo apt install zstd` or downlo
 
 ### tgx
 
-[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L1734)
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L1784)
 
 `tgx` extracts a gzip compressed tar file
 
@@ -444,7 +464,7 @@ This function requires `zstd`. Install it from `sudo apt install zstd` or downlo
 
 ### gclone
 
-[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L1764)
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L1814)
 
 `gclone` clones a git repository and cd's into it
 
@@ -455,7 +475,7 @@ This function requires `zstd`. Install it from `sudo apt install zstd` or downlo
 
 ### gsubd
 
-[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L1783)
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L1833)
 
 `gsubd` removed the current Git submodule and its entry in `.gitmodules`
 
@@ -466,7 +486,7 @@ This function requires `zstd`. Install it from `sudo apt install zstd` or downlo
 
 ### gclean
 
-[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L1819)
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L1869)
 
 `gclean` removes all untracked files, including ignored files and directories
 
@@ -477,7 +497,7 @@ This function requires `zstd`. Install it from `sudo apt install zstd` or downlo
 
 ### gcl
 
-[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L1833)
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L1883)
 
 `gcl` Generates a changelog from the commit history
 
@@ -488,7 +508,7 @@ This function requires `zstd`. Install it from `sudo apt install zstd` or downlo
 
 ### gbranch
 
-[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L1853)
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L1903)
 
 `gbranch` creates a new git branch and switches to it. Adds a "-" if spaces are present in the branch name.
 
@@ -502,7 +522,7 @@ This function requires `zstd`. Install it from `sudo apt install zstd` or downlo
 
 ### dot
 
-[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L1894)
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L1944)
 
 `dot` prints help for the dotfiles and can be used to run the dotfiles functions
 
@@ -513,7 +533,7 @@ This function requires `zstd`. Install it from `sudo apt install zstd` or downlo
 
 ### dotu
 
-[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L1921)
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L1971)
 
 `dotu` updates the dotfiles to the latest main branch
 
@@ -524,7 +544,7 @@ This function requires `zstd`. Install it from `sudo apt install zstd` or downlo
 
 ### dotub
 
-[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L2023)
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L2073)
 
 `dotub` updates binary files only to its latest version from GitHub releases.
 
@@ -535,7 +555,7 @@ This function requires `zstd`. Install it from `sudo apt install zstd` or downlo
 
 ### dotls
 
-[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L2076)
+[<Badge type="tip" text="source" />](https://github.com/akshaybabloo/dotfiles/blob/main/functions.sh#L2126)
 
 `dotls` lists all the aliases and functions in the dotfiles with their descriptions. Give it
 words to only show the entries whose name, description, command, usage, options, examples or
