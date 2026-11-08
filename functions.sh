@@ -703,7 +703,7 @@ function whyrestart() {
     '
 }
 
-## <Aside type="info" title="Requirements">
+## <Aside type="danger" title="Requirements">
 ## This function requires `rg` (ripgrep) see https://github.com/BurntSushi/ripgrep0 and `fzf` (https://github.com/junegunn/fzf).
 ## </Aside>
 ## `fif` finds files matching a pattern and previews them using `fzf`
@@ -1884,7 +1884,7 @@ function _dot_help() {
     echo
     echo "Commands:"
     echo "  u, update   Updates the dotfiles to the latest main branch"
-    echo "  ls          Lists all the aliases and functions in the dotfiles and the shell"
+    echo "  ls [word]   Lists all the aliases and functions, or only those mentioning every word"
     echo "  man         Opens the dotfiles man page (see also: man <function or alias>)"
     echo "  dir         Prints the directory where the dotfiles are located"
 }
@@ -1902,7 +1902,7 @@ function dot() {
             dotu
             ;;
         "ls")
-            dotls
+            dotls "${@:2}"
             ;;
         "man")
             man 7 dotfiles
@@ -2066,8 +2066,13 @@ function dotub() {
     fi
 }
 
-## `dotls` lists all the aliases and functions in the dotfiles with their descriptions
-## Usage: `dotls`
+## `dotls` lists all the aliases and functions in the dotfiles with their descriptions. Give it
+## words to only show the entries whose name, description, command, usage, options, examples or
+## notes mention all of them (case-insensitive), with the matches highlighted.
+## Usage: `dotls [word ...]`
+## Examples:
+##   `dotls git`          Everything that mentions git
+##   `dotls docker log`   Entries that mention both docker and log
 function dotls() {
     local script_dir
     script_dir=$(_whereami)
@@ -2081,12 +2086,60 @@ function dotls() {
     local BLUE=$'\033[1;94m'
     local RED=$'\033[0;31m'
     local GREEN=$'\033[0;32m'
+    local HIGHLIGHT=$'\033[0;1;7m'
     local NC=$'\033[0m'
 
     # Terminal width
     local term_width=${COLUMNS:-$(tput cols 2>/dev/null || echo 100)}
     local name_width=22
     local desc_width=$((term_width - name_width - 4))
+
+    # Lowercased search words; an entry is shown only if it mentions all of them
+    local search=() word
+    for word in "$@"; do
+        [[ -n $word ]] && search+=("$(printf '%s' "$word" | tr '[:upper:]' '[:lower:]')")
+    done
+    # Newline-separated copy for awk, which highlights the words in the output
+    local DOTLS_HL=""
+    [[ ${#search[@]} -gt 0 ]] && DOTLS_HL=$(printf '%s\n' "${search[@]}")
+
+    # Colours a line of text and prints it with a prefix: backtick spans in magenta (backticks
+    # dropped) and search words highlighted. After a highlight, the colour of the span it sits in
+    # is restored. Expects -v first/rest (prefixes), c (text colour), m, nc, on.
+    local colour_awk='
+        BEGIN { n = split(ENVIRON["DOTLS_HL"], words, "\n") }
+        function hl(s, col,    low, out, i, p, best, blen) {
+            if (n == 0) return s
+            low = tolower(s)
+            out = ""
+            while (1) {
+                best = 0
+                blen = 0
+                for (i = 1; i <= n; i++) {
+                    if (words[i] == "") continue
+                    p = index(low, words[i])
+                    if (p && (!best || p < best || (p == best && length(words[i]) > blen))) {
+                        best = p
+                        blen = length(words[i])
+                    }
+                }
+                if (!best) break
+                out = out substr(s, 1, best - 1) on substr(s, best, blen) nc col
+                s = substr(s, best + blen)
+                low = substr(low, best + blen)
+            }
+            return out s
+        }
+        {
+            nf = split($0, f, "`")
+            out = ""
+            for (i = 1; i <= nf; i++) {
+                if (i % 2 == 0 && i < nf) out = out m hl(f[i], m) c
+                else if (i % 2 == 0) out = out "`" hl(f[i], c)
+                else out = out hl(f[i], c)
+            }
+            print (NR == 1 ? first : rest) c out nc
+        }'
 
     # Inner renderer: walks a file, emits sections from `## h2:` markers
     # and entries matched by the given grep pattern + name extractor.
@@ -2105,6 +2158,10 @@ function dotls() {
         local options=()
         local examples=()
         local list_section=""
+        # When searching: what an alias runs (shown under its description), and the section
+        # header held back until an entry in that section matches
+        local runs=""
+        local pending_section=""
         local h2_re='^##[[:space:]]+h2:[[:space:]]*(.+)$'
         local fn_re='^function[[:space:]]+([^_][^(]*)\(\)'
         local aside_open_re='<Aside[[:space:]]+type="([^"]+)"[[:space:]]+title="([^"]+)">'
@@ -2128,13 +2185,30 @@ function dotls() {
             options=()
             examples=()
             list_section=""
+            runs=""
         }
 
-        # Wraps text to a width, then colours it with backtick spans highlighted.
+        # Prints the held-back section header (see `pending_section`)
+        _dotls_print_section() {
+            printf '\n  %s%s▸ %s%s\n' "$BOLD" "$YELLOW" "$pending_section" "$NC"
+            printf '  %s%s%s\n' "$DIM" "$(printf '%.0s─' $(seq 1 $((term_width - 4))))" "$NC"
+            pending_section=""
+        }
+
+        # Succeeds if the given fields, taken together, contain every search word
+        _dotls_matches() {
+            local haystack w
+            haystack=$(printf '%s\n' "$@" | tr '[:upper:]' '[:lower:]')
+            for w in "${search[@]}"; do
+                [[ $haystack == *"$w"* ]] || return 1
+            done
+        }
+
+        # Wraps text to a width, then colours it with backtick spans and search words highlighted.
         # Wrapping happens before colouring so escape codes don't count towards the width.
         #   $1: text, $2: width, $3: first-line prefix, $4: continuation prefix, $5: text colour
         _dotls_wrap() {
-            local width=$2 color=$5
+            local width=$2
             [[ $width -lt 20 ]] && width=20
             # Keep backtick spans on one line by swapping their spaces for \001 while wrapping
             local wrapped
@@ -2144,13 +2218,18 @@ function dotls() {
             fi
             printf '%s\n' "$wrapped" \
                 | sed -E $'s/\x01/ /g' \
-                | sed -E "s/\`([^\`]+)\`/${MAGENTA}\1${color}/g" \
-                | awk -v first="$3" -v rest="$4" -v c="$color" -v nc="$NC" '{ print (NR == 1 ? first : rest) c $0 nc }'
+                | DOTLS_HL="$DOTLS_HL" awk -v first="$3" -v rest="$4" -v c="$5" -v m="$MAGENTA" \
+                    -v nc="$NC" -v on="$HIGHLIGHT" "$colour_awk"
         }
 
         _dotls_print_details() {
             local indent
             indent=$(printf '%*s' $((name_width + 2)) "")
+
+            if [[ -n $runs ]]; then
+                _dotls_wrap "$runs" "$((desc_width - 6))" \
+                    "$indent${BOLD}Runs:${NC} " "$indent      " "$DIM"
+            fi
 
             if [[ -n $usage ]]; then
                 _dotls_wrap "$usage" "$((desc_width - 7))" \
@@ -2237,8 +2316,9 @@ function dotls() {
 
             # Section header: `## h2: Some Section`
             if [[ $line =~ $h2_re ]]; then
-                printf '\n  %s%s▸ %s%s\n' "$BOLD" "$YELLOW" "${BASH_REMATCH[1]}" "$NC"
-                printf '  %s%s%s\n' "$DIM" "$(printf '%.0s─' $(seq 1 $((term_width - 4))))" "$NC"
+                pending_section="${BASH_REMATCH[1]}"
+                # When searching, only print it once an entry in this section matches
+                [[ ${#search[@]} -eq 0 ]] && _dotls_print_section
                 _dotls_reset
                 continue
             fi
@@ -2305,9 +2385,9 @@ function dotls() {
             # Entry line
             local name=""
             local fallback=""
+            local alias_def=""
             if [[ $kind == "alias" && $line == alias* ]]; then
                 name=$(echo "$line" | sed -E 's/alias( --)? ([^=]+)=.*/\2/')
-                local alias_def
                 alias_def=$(echo "$line" | sed -E 's/alias( --)? [^=]+=(.*)$/\2/')
                 if [[ $alias_def == *"#"* ]]; then
                     fallback=$(echo "$alias_def" | sed -E 's/([^#]+)#.*/\1/' | xargs)
@@ -2319,7 +2399,21 @@ function dotls() {
             fi
 
             if [[ -n $name ]]; then
-                printf '  %s%-*s%s' "$CYAN" "$name_width" "$name" "$NC"
+                if [[ ${#search[@]} -gt 0 ]]; then
+                    if ! _dotls_matches "$name" "$description" "$alias_def" "$usage" \
+                        "${options[@]}" "${examples[@]}" "${asides[@]}"; then
+                        _dotls_reset
+                        continue
+                    fi
+                    [[ -n $pending_section ]] && _dotls_print_section
+                    # The description hides what an alias runs, which may be what matched
+                    [[ -n $description ]] && runs="$fallback"
+                    printf '%s' "$(printf '%-*s\n' "$name_width" "$name" \
+                        | DOTLS_HL="$DOTLS_HL" awk -v first="  " -v rest="" -v c="$CYAN" -v m="$CYAN" \
+                            -v nc="$NC" -v on="$HIGHLIGHT" "$colour_awk")"
+                else
+                    printf '  %s%-*s%s' "$CYAN" "$name_width" "$name" "$NC"
+                fi
                 local text="${description:-$fallback}"
                 if [[ -n $text ]]; then
                     _dotls_wrap "$text" "$desc_width" "" "$(printf '%*s' $((name_width + 2)) "")" "$DIM"
@@ -2337,8 +2431,25 @@ function dotls() {
                 _dotls_reset
             fi
         done < "$file"
-        unset -f _dotls_aside_color _dotls_print_asides _dotls_print_details _dotls_wrap _dotls_reset
+        unset -f _dotls_aside_color _dotls_print_asides _dotls_print_details _dotls_wrap _dotls_reset \
+            _dotls_print_section _dotls_matches
     }
+
+    if [[ ${#search[@]} -gt 0 ]]; then
+        # Render first so the Aliases/Functions banners can be skipped when they have no matches
+        local aliases_out functions_out
+        aliases_out=$(_dotls_render "$script_dir/aliases.sh" alias)
+        functions_out=$(_dotls_render "$script_dir/functions.sh" function)
+        unset -f _dotls_render
+        if [[ -z $aliases_out && -z $functions_out ]]; then
+            echoerr "No aliases or functions mention: $*"
+            return 1
+        fi
+        [[ -n $aliases_out ]] && printf '\n%s━━━ Aliases ━━━%s\n%s\n' "$BLUE" "$NC" "$aliases_out"
+        [[ -n $functions_out ]] && printf '\n\n%s━━━ Functions ━━━%s\n%s\n' "$BLUE" "$NC" "$functions_out"
+        echo ""
+        return 0
+    fi
 
     printf '\n%s━━━ Aliases ━━━%s\n' "$BLUE" "$NC"
     _dotls_render "$script_dir/aliases.sh" alias
