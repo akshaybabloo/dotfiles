@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/akshaybabloo/binstall/refs/heads/main/schema.json
+name: "jj"
+description: "A Git-compatible VCS that is both simple and powerful"
+url: "https://github.com/martinvonz/jj"
+installLocation: "~/bin"
+download:
+  linux:
+    amd64:
+      fileName: "jj-{{ .Version }}-x86_64-unknown-linux-musl.tar.gz"
+files:
+  - fileName: "jj"
+    copyIt: true
+    checkVersion: true
+    versionCommand:
+      args: "--version"
+      regexVersion: "\\d+\\.\\d+\\.\\d+"
