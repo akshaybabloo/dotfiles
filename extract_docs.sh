@@ -6,6 +6,7 @@ set -euo pipefail  # Exit on error, undefined variables, pipe failures
 readonly FUNCTIONS_FILE="${1:-functions.sh}"
 readonly ALIASES_FILE="${2:-aliases.sh}"
 readonly OUTPUT_DIR="${3:-$(pwd)/docs/src/content/docs/reference}"
+readonly BINARY_CONFIGS_DIR="${4:-binary_configs}"
 readonly BASE_URL="https://github.com/akshaybabloo/dotfiles/blob/main"
 
 function_content=""
@@ -53,7 +54,7 @@ process_file() {
 
     # Determine the URL segment based on the content type
     local urlSegment="${file}"
-    
+
     log_info "Processing $type from $file..."
 
     # Read the file line by line
@@ -69,14 +70,14 @@ process_file() {
         elif [[ $line == \#\#* ]]; then
             # Process and trim for '##' lines
             trimmed_line=$(echo "$line" | sed 's/^##[[:space:]]*//')
-            
+
             # Bold certain patterns
             if [[ $trimmed_line == Usage:* ]] || \
                [[ $trimmed_line == Options:* ]] || \
                [[ $trimmed_line == Examples:* ]]; then
                 trimmed_line="\n**$trimmed_line**\n"
             fi
-            
+
             comments+="$trimmed_line\n"
         elif [[ $line == function* ]] || [[ $line == alias* ]]; then
             # Extract function/alias name
@@ -85,7 +86,7 @@ process_file() {
             else
                 name=$(echo "$line" | sed -E 's/^alias( --)? ([^=]+)=.*/\2/')
             fi
-            
+
             # Skip private functions (starting with _)
             if [[ $name == _* ]]; then
                 # Output sub_title if present, so h2 headings aren't lost
@@ -96,20 +97,81 @@ process_file() {
                 sub_title=""
                 continue
             fi
-            
+
             # Only add entry if there are comments
             if [[ -n $comments || -n $sub_title ]]; then
                 content_var+="$sub_title\n\n### $name\n\n"
                 content_var+="[<Badge type=\"tip\" text=\"source\" />]($BASE_URL/$urlSegment#L$lineno)\n\n"
                 content_var+="$comments\n"
             fi
-            
+
             # Reset for next function
             comments=""
             sub_title=""
         fi
     done < "$file"
-    
+
+    return 0
+}
+
+# Read a top-level scalar value from a YAML file, stripping surrounding quotes
+get_yaml_value() {
+    local key=$1
+    local file=$2
+
+    sed -n -E "/^${key}:/{s/^${key}:[[:space:]]*//;s/^\"(.*)\"[[:space:]]*$/\1/;s/^'(.*)'[[:space:]]*$/\1/;p;q}" "$file"
+}
+
+# Escape characters that would break an MDX table cell
+escape_table_cell() {
+    sed -e 's/|/\\|/g' -e 's/{/\\{/g' -e 's/}/\\}/g' -e 's/</\&lt;/g' <<< "$1"
+}
+
+process_binary_configs() {
+    local dir=$1
+    local output=$2
+    local file name description url
+    local rows=()
+
+    if [[ ! -d "$dir" ]]; then
+        log_error "Directory '$dir' not found"
+        return 1
+    fi
+
+    log_info "Processing binary configs from $dir..."
+
+    for file in "$dir"/*.yaml; do
+        [[ -f "$file" ]] || continue
+
+        name=$(get_yaml_value name "$file")
+        description=$(get_yaml_value description "$file")
+        url=$(get_yaml_value url "$file")
+
+        if [[ -z $name ]]; then
+            log_error "Missing 'name' in $file, skipping"
+            continue
+        fi
+
+        name=$(escape_table_cell "$name")
+        description=$(escape_table_cell "$description")
+        [[ -n $url ]] && url="[$url]($url)"
+
+        rows+=("| $name | $description | $url |")
+    done
+
+    if [[ ${#rows[@]} -eq 0 ]]; then
+        log_error "No binary configs found in $dir"
+        return 1
+    fi
+
+    {
+        printf '%s\n' '---' 'title: Binaries' 'description: CLI binaries installed and updated by binstall.' 'tableOfContents: false' '---' ''
+        printf '%s\n' "These binaries are installed to \`~/bin\` and kept up to date by [binstall](https://github.com/akshaybabloo/binstall) when you run \`dotu\`. Each one is configured by a YAML file in [\`binary_configs/\`](${BASE_URL/blob/tree}/$dir)." ''
+        printf '%s\n' '| Name | Description | URL |' '| ---- | ----------- | --- |'
+        printf '%s\n' "${rows[@]}"
+    } > "$output"
+
+    log_success "Generated: $output"
     return 0
 }
 
@@ -160,6 +222,11 @@ main() {
         log_success "Generated: $aliases_output"
     else
         log_error "No alias content generated"
+        exit 1
+    fi
+
+    if ! process_binary_configs "$BINARY_CONFIGS_DIR" "$OUTPUT_DIR/binaries.mdx"; then
+        log_error "Failed to process binary configs"
         exit 1
     fi
 
