@@ -18,11 +18,10 @@ if sys.stdout.encoding != "utf-8":
 from rich.columns import Columns
 from rich.console import Group
 from rich.panel import Panel
-from rich.table import Table
 from rich.text import Text
 from textual import events, work
 from textual.app import App, ComposeResult
-from textual.containers import Vertical, VerticalScroll
+from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.coordinate import Coordinate
 from textual.screen import ModalScreen
 from textual.widgets import DataTable, Footer, LoadingIndicator, Static
@@ -346,16 +345,14 @@ def pct_color(pct):
     return "cyan"
 
 
-def make_bar_text(label, pct, detail="", width=30):
+def make_bar_text(label, pct, detail="", width=20):
     color = pct_color(pct)
     filled = int(width * pct / 100)
     bar_str = "█" * filled + "░" * (width - filled)
     text = Text()
-    text.append(f" {label:>5}: ", style="bold")
-    text.append("[", style="dim")
+    text.append(f"{label:>4} ", style="bold")
     text.append(bar_str[:filled], style=color)
     text.append(bar_str[filled:], style="dim")
-    text.append("]", style="dim")
     text.append(f" {pct:5.1f}%", style=color)
     if detail:
         text.append(f"  {detail}", style="dim")
@@ -377,46 +374,57 @@ def make_core_text(core_id, pct, cw=2, bar_w=8):
 
 def render_cpu(overall_cpu, per_core_cpu):
     load1, load5, load15 = load_avg()
-    cpu_lines = [
-        Text.assemble(
-            ("Load: ", "dim"),
-            (f"{load1} {load5} {load15}", "bold"),
-            ("  Up: ", "dim"),
-            (uptime_info(), "bold"),
-        ),
-        make_bar_text("All", overall_cpu),
-    ]
     cores = len(per_core_cpu)
-    panel = Panel(Text("\n").join(cpu_lines), title=f"[bold]CPU [cyan]{cores}[/cyan] cores[/bold]", border_style="blue")
+    # Load and uptime live in the title so they don't cost a line.
+    title = (
+        f"[bold]CPU [cyan]{cores}[/cyan] cores[/bold]"
+        f"[dim] · load [/dim][bold]{load1} {load5} {load15}[/bold]"
+        f"[dim] · up [/dim][bold]{uptime_info()}[/bold]"
+    )
 
     core_ids = sorted(per_core_cpu.keys())
     cw = len(str(max(core_ids, default=0)))
-    bar_w = 10 if cores <= 32 else 6 if cores <= 64 else 4
+    bar_w = 8 if cores <= 32 else 5 if cores <= 64 else 3
     grid = Columns([make_core_text(c, per_core_cpu[c], cw=cw, bar_w=bar_w) for c in core_ids], equal=True, expand=True)
-    return Group(panel, grid)
+    return Panel(Group(make_bar_text("All", overall_cpu), grid), title=title, border_style="blue")
 
 
-def render_memory():
+def memory_lines():
     mem_total, mem_used, swap_total, swap_used = mem_info()
     disk_total, disk_used = disk_info()
-    mem_lines = [make_bar_text("RAM", mem_used / mem_total * 100, f"{mem_used:.1f} / {mem_total:.1f} GB")]
+    lines = [make_bar_text("RAM", mem_used / mem_total * 100, f"{mem_used:.1f} / {mem_total:.1f} GB")]
     if swap_total > 0:
-        mem_lines.append(make_bar_text("Swap", swap_used / swap_total * 100, f"{swap_used:.1f} / {swap_total:.1f} GB"))
-    mem_lines.append(make_bar_text("Disk", disk_used / disk_total * 100, f"{disk_used:.0f} / {disk_total:.0f} GB"))
-    return Panel(Text("\n").join(mem_lines), title="[bold]Memory & Disk[/bold]", border_style="green")
+        lines.append(make_bar_text("Swap", swap_used / swap_total * 100, f"{swap_used:.1f} / {swap_total:.1f} GB"))
+    lines.append(make_bar_text("Disk", disk_used / disk_total * 100, f"{disk_used:.0f} / {disk_total:.0f} GB"))
+    return lines
 
 
-def render_network():
+def network_lines():
+    """One line per interface: name, then bytes received (↓) and sent (↑) since boot."""
     interfaces = net_info()
-    if not interfaces:
-        return None
-    net_table = Table(show_header=True, header_style="bold", box=None, pad_edge=False)
-    net_table.add_column("Interface", style="cyan")
-    net_table.add_column("RX", justify="right")
-    net_table.add_column("TX", justify="right")
-    for iface in interfaces:
-        net_table.add_row(iface["name"], fmt_gb(iface["rx"]), fmt_gb(iface["tx"]))
-    return Panel(net_table, title="[bold]Network[/bold]", border_style="magenta")
+    name_w = max((len(i["name"]) for i in interfaces), default=0)
+    return [
+        Text.assemble(
+            (f"{i['name']:<{name_w}}", "cyan"),
+            ("  ↓ ", "dim"),
+            f"{fmt_gb(i['rx']):>8}",
+            ("  ↑ ", "dim"),
+            f"{fmt_gb(i['tx']):>8}",
+        )
+        for i in interfaces
+    ]
+
+
+def render_memory_and_network():
+    """Memory and network panels, padded to the same height so they line up side by side."""
+    mem = memory_lines()
+    net = network_lines()
+    height = max(len(mem), len(net)) + 2
+    mem_panel = Panel(Text("\n").join(mem), title="[bold]Memory & Disk[/bold]", border_style="green", height=height)
+    if not net:
+        return mem_panel, None
+    net_panel = Panel(Text("\n").join(net), title="[bold]Network[/bold]", border_style="magenta", height=height)
+    return mem_panel, net_panel
 
 
 def render_gpus(gpus):
@@ -425,36 +433,37 @@ def render_gpus(gpus):
     panels = []
     for i, g in enumerate(gpus):
         gmem_pct = g["mem_used"] / g["mem_total"] * 100 if g["mem_total"] > 0 else 0.0
-        gpu_lines = []
-
-        info_parts = []
-        if g.get("cuda"):
-            info_parts.append(f"CUDA {g['cuda']}")
-        if g.get("driver"):
-            info_parts.append(f"Driver {g['driver']}")
-        if info_parts:
-            gpu_lines.append(Text.assemble(("  ", ""), (" | ".join(info_parts), "dim")))
-
-        if g["util"] is not None:
-            gpu_lines.append(make_bar_text("Use", g["util"]))
-        gpu_lines.append(make_bar_text("VRAM", gmem_pct, f"{g['mem_used']:.1f} / {g['mem_total']:.1f} GB"))
 
         stats = Text.assemble(
-            ("  Temp: ", "dim"),
-            (fmt_unit(g["temp"], "C"), "bold"),
-            ("  Power: ", "dim"),
+            (fmt_unit(g["temp"], "°C"), "bold"),
+            ("  ", ""),
             (fmt_unit(g["power"], "W"), "bold"),
             (f" / {fmt_unit(g['power_limit'], 'W')}", "dim"),
         )
         if g["fan"] is not None:
-            stats.append("  Fan: ", style="dim")
+            stats.append("  fan ", style="dim")
             stats.append(fmt_unit(g["fan"], "%"), style="bold")
-        gpu_lines.append(stats)
 
+        # Temperature, power and fan ride along on the utilisation line to save a row.
+        gpu_lines = []
+        if g["util"] is not None:
+            gpu_lines.append(make_bar_text("Use", g["util"]) + Text("  ") + stats)
+        gpu_lines.append(make_bar_text("VRAM", gmem_pct, f"{g['mem_used']:.1f} / {g['mem_total']:.1f} GB"))
+        if g["util"] is None:
+            gpu_lines.append(Text("     ") + stats)
+
+        # CUDA and driver versions go in the bottom border.
+        info = " · ".join(
+            part
+            for part in (g.get("cuda") and f"CUDA {g['cuda']}", g.get("driver") and f"Driver {g['driver']}")
+            if part
+        )
         panels.append(
             Panel(
                 Text("\n").join(gpu_lines),
                 title=f"[bold]GPU {i}: [cyan]{g['name']}[/cyan][/bold]",
+                subtitle=f"[dim]{info}[/dim]" if info else None,
+                subtitle_align="right",
                 border_style="yellow",
             )
         )
@@ -467,10 +476,11 @@ def collect():
     prime_cpu_usage()
     gpus = gpu_info()
     overall_cpu, per_core_cpu = cpu_usage()
+    mem_panel, net_panel = render_memory_and_network()
     return {
         "cpu": render_cpu(overall_cpu, per_core_cpu),
-        "mem": render_memory(),
-        "net": render_network(),
+        "mem": mem_panel,
+        "net": net_panel,
         "gpu": render_gpus(gpus),
         "gpu_procs": gpu_processes() if gpus else [],
         "top_procs": top_processes(5),
@@ -542,6 +552,8 @@ class CommandScreen(ModalScreen):
 class SysMon(App):
     TITLE = "sysmon"
     BINDINGS = [("q", "quit", "Quit")]
+    # Below 100 columns Memory and Network stack instead of sitting side by side.
+    HORIZONTAL_BREAKPOINTS = [(0, "-narrow"), (100, "-wide")]
 
     CSS = """
     #loading {
@@ -572,10 +584,20 @@ class SysMon(App):
     #gpu-procs, #gpu-procs:focus {
         border: round yellow;
     }
-    #hint {
-        color: $text-muted;
-        text-style: italic;
-        text-align: center;
+    #top-procs {
+        border-subtitle-color: $text-muted;
+    }
+    #mem-net {
+        height: auto;
+    }
+    #mem-net > Static {
+        width: 1fr;
+    }
+    .-narrow #mem-net {
+        layout: vertical;
+    }
+    .-narrow #mem-net > Static {
+        width: 100%;
     }
     """
 
@@ -586,12 +608,12 @@ class SysMon(App):
             yield Static("Sampling…", id="loading-label")
         with VerticalScroll(id="body"):
             yield Static(id="cpu")
-            yield Static(id="mem")
-            yield Static(id="net")
+            with Horizontal(id="mem-net"):
+                yield Static(id="mem")
+                yield Static(id="net")
             yield Static(id="gpu")
             yield ProcessTable(id="gpu-procs", cursor_type="row", zebra_stripes=True)
             yield ProcessTable(id="top-procs", cursor_type="row", zebra_stripes=True)
-            yield Static("Click a process (or select it and press Enter) to see its full command", id="hint")
         yield Footer()
 
     def on_mount(self) -> None:
@@ -601,6 +623,7 @@ class SysMon(App):
 
         top_table = self.query_one("#top-procs", ProcessTable)
         top_table.border_title = "Top Processes by RAM"
+        top_table.border_subtitle = "click a row for its full command"
         top_table.add_columns("PID", "RAM (MB)", "Command")
 
         for wid in ("#net", "#gpu", "#gpu-procs"):
