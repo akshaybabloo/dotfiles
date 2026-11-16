@@ -43,4 +43,5 @@ unset _dot_man_dir
 # Check if zoxide is installed, if so, run eval "$(zoxide init bash)"
 if command -v zoxide >/dev/null 2>&1; then
     eval "$(zoxide init bash)"
+    export _ZO_DOCTOR=0
 fi
