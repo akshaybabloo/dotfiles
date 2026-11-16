@@ -27,12 +27,16 @@ from textual.screen import ModalScreen
 from textual.widgets import DataTable, Footer, LoadingIndicator, Static
 
 PAGE_SIZE = os.sysconf("SC_PAGE_SIZE")
+CLK_TCK = os.sysconf("SC_CLK_TCK")
 REFRESH_SECONDS = 1.0
 
 # Previous /proc/stat sample (and when it was taken), so CPU usage is measured across refreshes
 # instead of sleeping.
 _prev_cpu_stats = None
 _prev_cpu_time = 0.0
+# Previous per-process CPU ticks keyed by (pid, starttime), for per-process CPU%.
+_prev_proc_ticks = None
+_prev_proc_time = 0.0
 
 
 def _read_cpu_stats():
@@ -201,7 +205,7 @@ def _full_cmd(parts, comm):
     return shlex.join(parts)
 
 
-def top_processes(n=5):
+def _read_procs():
     procs = []
     try:
         for pid in os.listdir("/proc"):
@@ -214,19 +218,53 @@ def top_processes(n=5):
                 close = data.rindex(")")
                 comm = data[data.index("(") + 1 : close]
                 rest = data[close + 2 :].split()  # rest[0] is field 3 (state)
-                rss_mb = int(rest[21]) * PAGE_SIZE / 1024 / 1024
-                procs.append({"pid": pid, "comm": comm, "rss_mb": rss_mb})
+                procs.append(
+                    {
+                        "pid": pid,
+                        "comm": comm,
+                        "rss_mb": int(rest[21]) * PAGE_SIZE / 1024 / 1024,
+                        "ticks": int(rest[11]) + int(rest[12]),  # utime + stime
+                        "start": rest[19],  # starttime, to detect PID reuse
+                    }
+                )
             except FileNotFoundError, PermissionError, ProcessLookupError, IndexError, ValueError:
                 continue
     except FileNotFoundError:
         return []
-    procs.sort(key=lambda p: p["rss_mb"], reverse=True)
-    top = procs[:n]
-    for p in top:
+    return procs
+
+
+def prime_process_cpu():
+    """Take the baseline per-process CPU tick sample if there isn't one yet."""
+    global _prev_proc_ticks, _prev_proc_time
+    if _prev_proc_ticks is None:
+        _prev_proc_ticks = {(p["pid"], p["start"]): p["ticks"] for p in _read_procs()}
+        _prev_proc_time = time.monotonic()
+
+
+def top_processes(n=5):
+    """Return (top by RAM, top by CPU%). CPU% is per core, like top, so it can exceed 100."""
+    global _prev_proc_ticks, _prev_proc_time
+    prime_process_cpu()
+    procs = _read_procs()
+    now = time.monotonic()
+    elapsed = now - _prev_proc_time
+    for p in procs:
+        prev = _prev_proc_ticks.get((p["pid"], p["start"]))
+        if prev is None or elapsed <= 0:
+            p["cpu_pct"] = 0.0
+        else:
+            p["cpu_pct"] = max(0.0, (p["ticks"] - prev) / CLK_TCK / elapsed * 100)
+    _prev_proc_ticks = {(p["pid"], p["start"]): p["ticks"] for p in procs}
+    _prev_proc_time = now
+
+    by_mem = sorted(procs, key=lambda p: p["rss_mb"], reverse=True)[:n]
+    by_cpu = sorted(procs, key=lambda p: p["cpu_pct"], reverse=True)[:n]
+    for p in {id(p): p for p in by_mem + by_cpu}.values():
         argv = _cmdline(p["pid"])
         p["cmd"] = _format_cmd(argv, p["comm"])
         p["full_cmd"] = _full_cmd(argv, p["comm"])
-    return top
+    return by_mem, by_cpu
 
 
 def _num(s):
@@ -474,16 +512,19 @@ def collect():
     """Sample everything. Runs in a worker thread so slow nvidia-smi calls don't block input."""
     # Take the CPU baseline before nvidia-smi so a slow first call counts towards the sample window.
     prime_cpu_usage()
+    prime_process_cpu()
     gpus = gpu_info()
     overall_cpu, per_core_cpu = cpu_usage()
     mem_panel, net_panel = render_memory_and_network()
+    top_mem, top_cpu = top_processes(5)
     return {
         "cpu": render_cpu(overall_cpu, per_core_cpu),
         "mem": mem_panel,
         "net": net_panel,
         "gpu": render_gpus(gpus),
         "gpu_procs": gpu_processes() if gpus else [],
-        "top_procs": top_processes(5),
+        "top_procs": top_mem,
+        "top_cpu_procs": top_cpu,
     }
 
 
@@ -584,7 +625,7 @@ class SysMon(App):
     #gpu-procs, #gpu-procs:focus {
         border: round yellow;
     }
-    #top-procs {
+    #top-procs, #top-cpu-procs {
         border-subtitle-color: $text-muted;
     }
     #mem-net {
@@ -614,6 +655,7 @@ class SysMon(App):
             yield Static(id="gpu")
             yield ProcessTable(id="gpu-procs", cursor_type="row", zebra_stripes=True)
             yield ProcessTable(id="top-procs", cursor_type="row", zebra_stripes=True)
+            yield ProcessTable(id="top-cpu-procs", cursor_type="row", zebra_stripes=True)
         yield Footer()
 
     def on_mount(self) -> None:
@@ -625,6 +667,11 @@ class SysMon(App):
         top_table.border_title = "Top Processes by RAM"
         top_table.border_subtitle = "click a row for its full command"
         top_table.add_columns("PID", "RAM (MB)", "Command")
+
+        cpu_table = self.query_one("#top-cpu-procs", ProcessTable)
+        cpu_table.border_title = "Top Processes by CPU%"
+        cpu_table.border_subtitle = "click a row for its full command"
+        cpu_table.add_columns("PID", "CPU%", "Command")
 
         for wid in ("#net", "#gpu", "#gpu-procs"):
             self.query_one(wid).display = False
@@ -666,7 +713,10 @@ class SysMon(App):
 
         # GPU entries go last so they win for a PID in both tables: their name is the full exe path
         # from nvidia-smi rather than the 15-char kernel comm.
-        self._commands = {p["pid"]: (p["comm"], p["full_cmd"]) for p in snap["top_procs"] + snap["gpu_procs"]}
+        self._commands = {
+            p["pid"]: (p["comm"], p["full_cmd"])
+            for p in snap["top_procs"] + snap["top_cpu_procs"] + snap["gpu_procs"]
+        }
 
         gpu_table = self.query_one("#gpu-procs", ProcessTable)
         gpu_table.display = bool(snap["gpu_procs"])
@@ -692,6 +742,20 @@ class SysMon(App):
                     ),
                 )
                 for p in snap["top_procs"]
+            ],
+        )
+        self._fill_table(
+            self.query_one("#top-cpu-procs", ProcessTable),
+            [
+                (
+                    p["pid"],
+                    (
+                        Text(p["pid"], style="cyan", justify="right"),
+                        Text(f"{p['cpu_pct']:.1f}", justify="right"),
+                        p["cmd"],
+                    ),
+                )
+                for p in snap["top_cpu_procs"]
             ],
         )
 
