@@ -3,7 +3,7 @@
   "scripts": {
     "docs:build": "pnpm --filter docs run build"
   },
-  "packageManager": "pnpm@12.21.0",
+  "packageManager": "pnpm@12.23.0",
   "devDependencies": {
     "wrangler": "^4.162.0"
   }
